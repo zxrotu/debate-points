@@ -41,21 +41,25 @@ function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-sm p-8 bg-white rounded-3xl shadow-sm border border-slate-200">
-      <h2 className="text-2xl font-bold text-center mb-8 text-slate-800">
+    <div className="custom-card">
+      <h2 className="custom-h1" style={{ fontSize: '28px' }}>
         {isAdmin ? '管理員專屬登入' : '社員登入'}
       </h2>
-      {error && <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm mb-4 text-center">{error}</div>}
-      <form onSubmit={handleLogin} className="space-y-5">
+      {error && (
+        <div style={{ padding: '12px', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B91C1C', borderRadius: '12px', fontSize: '14px', marginBottom: '16px', textAlign: 'center' }}>
+          {error}
+        </div>
+      )}
+      <form onSubmit={handleLogin}>
         <div>
-          <label className="block text-xs font-semibold text-slate-400 mb-1.5 px-1">帳號</label>
-          <input type="text" required value={username} onChange={e => setUsername(e.target.value)} className="w-full bg-[#FAF3E8] border border-slate-200 rounded-full px-5 py-2.5 text-black text-sm focus:outline-none focus:ring-2 focus:ring-[#0097B2]" placeholder="請輸入帳號" />
+          <label className="custom-field-label">帳號</label>
+          <input type="text" required value={username} onChange={e => setUsername(e.target.value)} className="custom-input" placeholder="請輸入帳號" />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-400 mb-1.5 px-1">密碼</label>
-          <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-[#FAF3E8] border border-slate-200 rounded-full px-5 py-2.5 text-black text-sm focus:outline-none focus:ring-2 focus:ring-[#0097B2]" placeholder="請輸入密碼" />
+          <label className="custom-field-label">密碼</label>
+          <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="custom-input" placeholder="請輸入密碼" />
         </div>
-        <button type="submit" disabled={loading} className="w-full bg-[#0097B2] hover:bg-[#007A8F] text-white py-3 rounded-full font-bold transition shadow-sm text-sm mt-2">
+        <button type="submit" disabled={loading} className="custom-btn-primary" style={{ marginTop: '8px' }}>
           {loading ? '登入中...' : '確認登入'}
         </button>
       </form>
@@ -65,8 +69,8 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#FAF3E8] px-4">
-      <Suspense fallback={<div className="text-slate-800 text-lg">載入中...</div>}>
+    <div className="page-container">
+      <Suspense fallback={<div style={{ color: '#000000', fontSize: '18px' }}>載入中...</div>}>
         <LoginForm />
       </Suspense>
     </div>

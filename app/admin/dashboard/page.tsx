@@ -19,9 +19,9 @@ export default function AdminDashboard() {
         { 
           fps: 10, 
           qrbox: { width: 250, height: 250 },
-          supportedScanTypes: [0], // 僅限相機掃描
+          supportedScanTypes: [0], // 僅限相機
           videoConstraints: {
-            facingMode: "environment" // 👈 強制調用後置（背面環境）相機！
+            facingMode: "environment" // 強制後置鏡頭
           }
         },
         false
@@ -33,7 +33,7 @@ export default function AdminDashboard() {
           await handlePointsAction({ qr_token: decodedText });
         },
         (error) => {
-          // 忽略掃描中的微小異常
+          // 忽略掃描異常
         }
       );
 
@@ -77,59 +77,59 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF3E8] text-black p-4 sm:p-6">
-      <div className="max-w-xl mx-auto">
-        <header className="flex justify-between items-center mb-6 pb-4 border-b border-slate-300">
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">管理員主控台</h1>
-            <p className="text-slate-400 text-xs mt-0.5">管理社員「論點」增減</p>
+    <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
+      <div className="content-wrapper" style={{ maxWidth: '500px' }}>
+        <header style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
+          <div style={{ flexGrow: 1 }}>
+            <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, color: '#1E293B' }}>管理員主控台</h1>
+            <p style={{ fontSize: '13px', color: '#64748B', margin: '4px 0 0 0' }}>管理社員「論點」增減</p>
           </div>
-          <button onClick={handleLogout} className="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-full transition font-semibold">登出</button>
+          <button onClick={handleLogout} className="custom-btn-secondary" style={{ width: 'auto', padding: '8px 16px', fontSize: '12px' }}>
+            登出
+          </button>
         </header>
 
-        <div className="p-5 bg-white rounded-3xl mb-6 border border-slate-200 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-700 mb-4 px-1">設定點數變更參數</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px' }}>
+          <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center' }}>設定點數變更參數</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1 px-1">變更點數 (正數加點，負數扣點)</label>
-              <input type="number" value={amount} onChange={e => setAmount(Number(e.target.value))} className="w-full bg-[#FAF3E8] border border-slate-200 rounded-full px-4 py-2 text-black text-sm focus:outline-none" />
+              <label className="custom-field-label">變更點數 (正數加，負數扣)</label>
+              <input type="number" value={amount} onChange={e => setAmount(Number(e.target.value))} className="custom-input" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1 px-1">變更事由</label>
-              <input type="text" value={reason} onChange={e => setReason(e.target.value)} className="w-full bg-[#FAF3E8] border border-slate-200 rounded-full px-4 py-2 text-black text-sm focus:outline-none" />
+              <label className="custom-field-label">變更事由</label>
+              <input type="text" value={reason} onChange={e => setReason(e.target.value)} className="custom-input" />
             </div>
           </div>
         </div>
 
         {message.text && (
-          <div className={`p-4 rounded-2xl mb-6 text-center text-sm font-semibold border ${message.type === 'success' ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-rose-50 border-rose-400 text-rose-500'}`}>
+          <div style={{ padding: '16px', borderRadius: '16px', border: '1px solid', marginBottom: '24px', textAlign: 'center', fontSize: '14px', backgroundColor: message.type === 'success' ? '#ECFDF5' : '#FEF2F2', borderColor: message.type === 'success' ? '#10B981' : '#F87171', color: message.type === 'success' ? '#047857' : '#B91C1C' }}>
             {message.text}
           </div>
         )}
 
-        <div className="flex border-b border-slate-200 mb-6 bg-white p-1 rounded-full shadow-sm">
-          <button onClick={() => setActiveTab('scan')} className={`flex-1 py-2 text-center text-sm font-bold rounded-full transition ${activeTab === 'scan' ? 'bg-[#0097B2] text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+        <div style={{ display: 'flex', backgroundColor: '#FFFFFF', padding: '4px', borderRadius: '9999px', border: '2px solid #CBD5E1', marginBottom: '24px' }}>
+          <button onClick={() => setActiveTab('scan')} className="custom-btn-primary" style={{ flex: 1, backgroundColor: activeTab === 'scan' ? '#0097B2' : 'transparent', color: activeTab === 'scan' ? '#FFFFFF' : '#64748B', boxShadow: 'none' }}>
             掃描 QR Code
           </button>
-          <button onClick={() => setActiveTab('manual')} className={`flex-1 py-2 text-center text-sm font-bold rounded-full transition ${activeTab === 'manual' ? 'bg-[#0097B2] text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+          <button onClick={() => setActiveTab('manual')} className="custom-btn-primary" style={{ flex: 1, backgroundColor: activeTab === 'manual' ? '#0097B2' : 'transparent', color: activeTab === 'manual' ? '#FFFFFF' : '#64748B', boxShadow: 'none' }}>
             手動輸入學號
           </button>
         </div>
 
         {activeTab === 'scan' ? (
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center">
-            <p className="text-xs text-slate-400 mb-4 text-center">請允許相機權限，將社員 QR Code 放置於鏡頭前</p>
-            <div id="reader" className="w-full max-w-sm rounded-2xl overflow-hidden bg-[#FAF3E8] border border-slate-200"></div>
+          <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center' }}>
+            <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '16px' }}>請允許相機權限，將社員 QR Code 放置於鏡頭前</p>
+            <div id="reader" style={{ borderRadius: '16px', overflow: 'hidden', border: '2px solid #CBD5E1' }}></div>
           </div>
         ) : (
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-700 mb-4">手動指定社員點數</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1 px-1">社員登入帳號 (學號)</label>
-                <input type="text" placeholder="例如 student01" value={manualUsername} onChange={e => setManualUsername(e.target.value)} className="w-full bg-[#FAF3E8] border border-slate-200 rounded-full px-4 py-2 text-black text-sm focus:outline-none" />
-              </div>
-              <button onClick={() => handlePointsAction({ username: manualUsername })} disabled={loading || !manualUsername} className="w-full bg-[#0097B2] hover:bg-[#007A8F] text-white py-3 rounded-full font-bold transition shadow-sm text-sm">
+          <div className="custom-card" style={{ maxWidth: '100%' }}>
+            <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center' }}>手動指定社員點數</h3>
+            <div>
+              <label className="custom-field-label">社員登入帳號 (學號)</label>
+              <input type="text" placeholder="例如 student01" value={manualUsername} onChange={e => setManualUsername(e.target.value)} className="custom-input" />
+              <button onClick={() => handlePointsAction({ username: manualUsername })} disabled={loading || !manualUsername} className="custom-btn-primary" style={{ width: '100%' }}>
                 {loading ? '處理中...' : '提交點數異動'}
               </button>
             </div>

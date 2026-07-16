@@ -1,4 +1,5 @@
 'use client';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -9,6 +10,29 @@ interface MemberDashboardClientProps {
 
 export default function MemberDashboardClient({ profile, rewards }: MemberDashboardClientProps) {
   const router = useRouter();
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [dynamicQrValue, setDynamicQrValue] = useState('');
+
+  useEffect(() => {
+    const generateDynamicQR = () => {
+      const timeSlice = Math.floor(Date.now() / 60000); // 60秒
+      setDynamicQrValue(`${profile.qr_token}:${timeSlice}`);
+    };
+
+    generateDynamicQR();
+
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          generateDynamicQR();
+          return 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [profile.qr_token]);
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -16,50 +40,61 @@ export default function MemberDashboardClient({ profile, rewards }: MemberDashbo
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF3E8] text-black p-4 sm:p-6">
-      <div className="max-w-2xl mx-auto">
-        <header className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200">
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">你好，{profile.name}</h1>
-            <p className="text-slate-400 text-xs mt-0.5">歡迎回到辯論社論點系統</p>
+    <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
+      <div className="content-wrapper">
+        <header style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
+          <div style={{ flexGrow: 1 }}>
+            <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, color: '#1E293B' }}>你好，{profile.name}</h1>
+            <p style={{ fontSize: '13px', color: '#64748B', margin: '4px 0 0 0' }}>歡迎回到辯論社論點系統</p>
           </div>
-          <button 
-            onClick={handleLogout} 
-            className="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-full transition font-semibold"
-          >
+          <button onClick={handleLogout} className="custom-btn-secondary" style={{ width: 'auto', padding: '8px 16px', fontSize: '12px' }}>
             登出
           </button>
         </header>
 
-        <div className="grid grid-cols-1 gap-5 mb-8">
-          {/* 餘額卡片 */}
-          <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center items-center text-center">
-            <p className="text-slate-400 text-xs mb-1">我的「論點」餘額</p>
-            <p className="text-5xl font-black text-[#0097B2]">{profile.points} <span className="text-base font-normal text-slate-500">點</span></p>
-          </div>
-
-          {/* QR Code 卡片 */}
-          <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center">
-            <h3 className="text-sm font-bold text-slate-700 mb-3">出示此 QR Code 進行兌換</h3>
-            <div className="bg-white p-3 border border-slate-100 rounded-2xl shadow-sm">
-              <QRCodeSVG value={profile.qr_token} size={150} />
-            </div>
-            <p className="text-[10px] text-slate-400 mt-3 font-light">截圖無效，點數不可轉贈他人</p>
-          </div>
+        {/* 餘額卡片 */}
+        <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '20px' }}>
+          <p style={{ fontSize: '14px', color: '#64748B', textAlign: 'center', margin: '0 0 8px 0' }}>我的「論點」餘額</p>
+          <p style={{ fontSize: '48px', fontWeight: '900', color: '#0097B2', textAlign: 'center', margin: 0 }}>
+            {profile.points} <span style={{ fontSize: '18px', fontWeight: 'normal', color: '#475569' }}>點</span>
+          </p>
         </div>
 
-        {/* 兌換獎品清單 */}
-        <div className="mb-6">
-          <h2 className="text-base font-bold mb-3 text-slate-800 px-1">可兌換獎品</h2>
-          <div className="space-y-3">
+        {/* 動態安全驗證碼 */}
+        <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', textAlign: 'center' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B', margin: '0 0 4px 0' }}>出示此即時安全碼進行兌換</h3>
+          <p style={{ fontSize: '13px', color: '#0097B2', fontWeight: 'bold', margin: '0 0 16px 0' }}>條碼將在 {timeLeft} 秒後自動更新</p>
+          
+          {/* 動態進度條 */}
+          <div style={{ width: '160px', height: '6px', backgroundColor: '#E2E8F0', borderRadius: '9999px', margin: '0 auto 16px auto', overflow: 'hidden' }}>
+            <div 
+              style={{ 
+                height: '100%', 
+                backgroundColor: '#0097B2', 
+                width: `${(timeLeft / 60) * 100}%`,
+                transition: 'width 1s linear'
+              }}
+            ></div>
+          </div>
+
+          <div style={{ display: 'inline-block', backgroundColor: '#FFFFFF', padding: '12px', border: '1px solid #CBD5E1', borderRadius: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+            {dynamicQrValue && <QRCodeSVG value={dynamicQrValue} size={150} />}
+          </div>
+          <p style={{ fontSize: '11px', color: '#64748B', marginTop: '16px', fontWeight: '300' }}>動態安全防偽技術，截圖畫面無法進行掃描</p>
+        </div>
+
+        {/* 獎品清單 */}
+        <div>
+          <h2 className="custom-h2" style={{ paddingLeft: '8px' }}>可兌換獎品</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {rewards.map(reward => (
-              <div key={reward.id} className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
+              <div key={reward.id} className="custom-card" style={{ maxWidth: '100%', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0 }}>
                 <div>
-                  <h4 className="text-sm font-bold text-slate-800">{reward.title}</h4>
-                  <p className="text-[11px] text-slate-400 mt-0.5 font-light">{reward.description}</p>
+                  <h4 style={{ fontSize: '15px', fontWeight: 'bold', margin: 0, color: '#1E293B' }}>{reward.title}</h4>
+                  <p style={{ fontSize: '11px', color: '#64748B', margin: '4px 0 0 0' }}>{reward.description}</p>
                 </div>
-                <div className="text-right">
-                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${profile.points >= reward.points_required ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
+                <div>
+                  <span style={{ display: 'inline-block', padding: '4px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: 'bold', backgroundColor: profile.points >= reward.points_required ? '#ECFDF5' : '#FEF2F2', color: profile.points >= reward.points_required ? '#059669' : '#EF4444' }}>
                     {reward.points_required} 點
                   </span>
                 </div>

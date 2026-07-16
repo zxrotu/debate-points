@@ -1,7 +1,7 @@
-/* 1. 從台灣繁體開源字型 GitHub 官方 CDN 載入芫荽體實體字型 */
+/* 1. 載入本機 public 資料夾中的實體芫荽體字型 */
 @font-face {
   font-family: 'Iansui';
-  src: url('https://cdn.jsdelivr.net/gh/ButTaiwan/iansui@main/fonts/ttf/Iansui-Regular.ttf') format('truetype');
+  src: url('/Iansui-Regular.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -11,16 +11,138 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 2. 徹底移除 Next.js 的預設黑底設定，強制全網頁不分手機/電腦、不分深淺色模式，皆為米黃色背景與黑色文字 */
-* {
-  box-sizing: border-box;
-}
-
+/* 2. 原生 CSS 強制設定 (不受任何編譯錯誤影響，保證 100% 穩定) */
 html, body {
   background-color: #FAF3E8 !important;
   color: #000000 !important;
-  font-family: 'Iansui', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif !important;
+  font-family: 'Iansui', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  box-sizing: border-box;
+  font-size: 16px !important; /* 正文：行動裝置至少 16px */
+  line-height: 1.6 !important; /* 行高：字體大小的 1.6 倍，減輕眼睛負擔 */
+}
+
+/* 3. 慎思設計指南高對比元件 */
+
+/* 滿版居中底色容器 */
+.page-container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 100vh !important;
+  background-color: #FAF3E8 !important;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+}
+
+/* 容器限制：單行字數限制在 60 到 80 字元，防止閱讀疲勞 */
+.content-wrapper {
+  max-width: 600px !important; /* 行寬限制：約 60~80 個字元的寬度 */
+  width: 100% !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+}
+
+/* 高對比卡片 (淺色底搭配深色字) */
+.custom-card {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border: 2px solid #CBD5E1 !important; /* 深灰色粗邊框保證高對比 */
+  border-radius: 24px !important; /* 圓角 */
+  padding: 32px 24px !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05) !important;
+  width: 100% !important;
+  max-width: 400px !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+}
+
+/* 標題 H1 (約正文的 2 倍大小：32px) */
+.custom-h1 {
+  font-size: 32px !important;
+  font-weight: 800 !important;
+  line-height: 1.4 !important;
+  color: #1E293B !important;
+  margin-top: 0 !important;
+  margin-bottom: 16px !important;
+  text-align: center !important;
+}
+
+/* 正文風格 */
+.custom-p {
+  font-size: 16px !important;
+  line-height: 1.6 !important;
+  color: #475569 !important;
+  margin-bottom: 24px !important;
+  text-align: center !important;
+}
+
+/* 表單欄位標題 */
+.custom-field-label {
+  display: block !important;
+  font-size: 14px !important;
+  font-weight: bold !important;
+  color: #475569 !important;
+  margin-bottom: 8px !important;
+  padding-left: 8px !important;
+}
+
+/* 高對比輸入框：解決太貼、太長、邊距不夠問題 */
+.custom-input {
+  width: 100% !important;
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border: 2px solid #94A3B8 !important; /* 高對比度粗邊框 */
+  border-radius: 12px !important; /* 圓角 */
+  padding: 14px 18px !important; /* 內部舒適邊距，防止太貼 */
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+  box-sizing: border-box !important;
+  margin-bottom: 24px !important; /* 外部留白，防止黏在一起 */
+}
+
+/* 主按鈕：深青色背景搭配 100% 純白字 (高對比) */
+.custom-btn-primary {
+  display: block !important;
+  width: 100% !important;
+  background-color: #0097B2 !important;
+  color: #FFFFFF !important; /* 💡 確保是白色字，高對比 */
+  font-weight: bold !important;
+  font-size: 16px !important;
+  padding: 14px 24px !important;
+  border-radius: 9999px !important; /* 完美膠囊圓角 */
+  border: none !important;
+  cursor: pointer !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 4px 6px rgba(0, 151, 178, 0.2) !important;
+  text-decoration: none !important;
+}
+
+.custom-btn-primary:hover {
+  background-color: #007A8F !important;
+}
+
+/* 次要按鈕 */
+.custom-btn-secondary {
+  display: block !important;
+  width: 100% !important;
+  background-color: #FFFFFF !important;
+  color: #0097B2 !important;
+  font-weight: bold !important;
+  font-size: 16px !important;
+  padding: 14px 24px !important;
+  border-radius: 9999px !important; /* 完美膠囊圓角 */
+  border: 2px solid #0097B2 !important;
+  cursor: pointer !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+  text-decoration: none !important;
+}
+
+.custom-btn-secondary:hover {
+  background-color: #F1FAFC !important;
 }
