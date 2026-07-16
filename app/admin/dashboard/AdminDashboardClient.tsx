@@ -14,7 +14,6 @@ interface AdminDashboardClientProps {
 export default function AdminDashboardClient({ adminName, initialRewards, transactions }: AdminDashboardClientProps) {
   const router = useRouter();
   
-  // 頁籤切換: 'scan' (掃描條碼) / 'manual' (輸入帳號) / 'students' (社員名冊) / 'add_reward' (新增獎品) / 'batch_add' (一次加點) / 'group_add' (掃碼加點)
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward' | 'batch_add' | 'group_add'>('scan');
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   const [student, setStudent] = useState<any>(null);
@@ -35,7 +34,6 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [newRewardPoints, setNewRewardPoints] = useState<number>(20);
   const [newRewardDesc, setNewRewardDesc] = useState('');
 
-  // 一次加點與集體掃碼狀態
   const [batchAmount, setBatchAmount] = useState<number>(5);
   const [batchReason, setBatchReason] = useState('參與社課加點');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
@@ -51,7 +49,6 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
 
-  // 初始化個人掃描相機
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
     if (step === 'scan_or_search' && activeTab === 'scan') {
@@ -66,14 +63,12 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
     };
   }, [step, activeTab]);
 
-  // 載入社員名冊
   useEffect(() => {
     if (activeTab === 'students' || activeTab === 'batch_add') {
       fetchStudents();
     }
   }, [activeTab]);
 
-  // 集體掃碼倒數計時
   useEffect(() => {
     if (!expiresAt) return;
     const interval = setInterval(() => {
@@ -336,7 +331,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
 
         {/* 歷史紀錄卡片 */}
         {showHistory && (
-          <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '32px', padding: '24px' }}>
+          <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', padding: '24px' }}>
             <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center', marginBottom: '16px' }}>全體點數異動日誌</h3>
             {transactions.length === 0 ? (
               <p style={{ textAlign: 'center', color: '#64748B', fontSize: '14px', margin: 0 }}>資料庫目前尚無任何交易日誌</p>
@@ -359,14 +354,14 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 💡 第一排：獨立 div 容器，3個按鈕寬度完全等寬均分，100% 拒絕 wrap 亂排 */}
+        {/* 第一排按鈕 */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
           <button onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>掃描條碼</button>
           <button onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>輸入帳號</button>
           <button onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>社員名冊</button>
         </div>
 
-        {/* 💡 第二排：獨立 div 容器，3個按鈕寬度完全等寬均分，與第一排完美垂直對稱 */}
+        {/* 第二排按鈕：底部留白統一改為 24px，與卡片內 24px 完美對齊 */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
           <button onClick={() => { setActiveTab('add_reward'); setMessage({ text: '', type: '' }); }} className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>新增獎品</button>
           <button onClick={() => { setActiveTab('batch_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'batch_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>一次加點</button>
@@ -394,7 +389,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
             )}
 
             {step === 'student_confirm' && student && (
-              <div className="custom-card" style={{ maxWidth: '100%' }}>
+              <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px' }}>
                 <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>確認社員資訊</h3>
                 <div style={{ backgroundColor: '#FAF3E8', padding: '16px', borderRadius: '16px', border: '1px solid #CBD5E1', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div>
@@ -418,7 +413,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
             )}
 
             {step === 'points_adjust' && student && (
-              <div className="custom-card" style={{ maxWidth: '100%' }}>
+              <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px' }}>
                 <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '4px' }}>設定點數變更</h3>
                 <p className="custom-p" style={{ fontSize: '14px', marginBottom: '20px' }}>對象: {student.name} (目前 {student.points} 點)</p>
 
@@ -511,6 +506,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
 
         {activeTab === 'add_reward' && (
           <div>
+            {/* 💡 修正 2：在新增獎品卡片下，強制補上 margin-bottom: 24px，與 globals.css 對應 */}
             <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px' }}>
               <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>新增社團獎品</h3>
               <form onSubmit={handleAddRewardSubmit}>
@@ -533,7 +529,8 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
             <h2 className="custom-h2" style={{ paddingLeft: '8px', fontSize: '18px', marginTop: '32px' }}>目前獎品清單 (可於手機直接刪除)</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {rewardsList.map((reward) => (
-                <div key={reward.id} className="custom-card" style={{ maxWidth: '100%', padding: '16px 20px', margin: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                /* 💡 修正 3：獎品清單的每張卡片底部，設定 margin-bottom: 24px 確保垂直完全對齊 */
+                <div key={reward.id} className="custom-card" style={{ maxWidth: '100%', padding: '16px 20px', margin: '0 auto 24px auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ textAlign: 'left', paddingRight: '8px' }}>
                     <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#1E293B' }}>{reward.title}</div>
                     <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>所需點數: {reward.points_required} 點</div>
@@ -552,11 +549,12 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 頁籤五：批次手動勾選加點 UI */}
+        {/* 頁籤五：一次加點 */}
         {activeTab === 'batch_add' && (
           <div>
+            {/* 💡 修正 4：一次加點卡片底部，設定 margin-bottom: 24px */}
             <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px' }}>
-              <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>設定批次加點參數</h3>
+              <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>設定一次加點參數</h3>
               <div>
                 <label className="custom-field-label">加點分數 (正數)</label>
                 <input type="number" min="1" value={batchAmount} onChange={e => setBatchAmount(Math.max(1, Number(e.target.value)))} className="custom-input" />
@@ -575,7 +573,8 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
               </button>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '0 4px' }}>
+            {/* 💡 修正 5：名單標題下方的間隔設定為 24px */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', padding: '0 4px' }}>
               <h2 className="custom-h2" style={{ margin: 0, fontSize: '18px' }}>選擇學員名單</h2>
               <button onClick={handleToggleSelectAll} className="custom-btn-logout" style={{ fontSize: '12px', padding: '4px 12px' }}>
                 {filteredStudents.every(id => selectedStudentIds.includes(id.id)) ? '取消全選' : '一鍵全選'}
@@ -597,6 +596,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                 {filteredStudents.map((s) => {
                   const isChecked = selectedStudentIds.includes(s.id);
                   return (
+                    /* 💡 修正 6：多選清單的每張卡片底部，設定 margin-bottom: 24px */
                     <div 
                       key={s.id} 
                       onClick={() => handleToggleSelectStudent(s.id)}
@@ -604,7 +604,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                       style={{ 
                         maxWidth: '100%', 
                         padding: '16px 20px', 
-                        margin: 0, 
+                        margin: '0 auto 24px auto', 
                         display: 'flex', 
                         alignItems: 'center',
                         gap: '16px',
@@ -631,10 +631,11 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 💡 頁籤六：即時出席加點 QR Code 產生器 (內文已修正為「即時加點QR Code」) */}
+        {/* 頁籤六：即時出席加點 QR Code 產生器 */}
         {activeTab === 'group_add' && (
           <div>
             {!claimId ? (
+              /* 💡 修正 7：產生集體卡片底部，設定 margin-bottom: 24px */
               <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px' }}>
                 <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>即時加點QR Code</h3>
                 <div>
@@ -654,6 +655,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                 </button>
               </div>
             ) : (
+              /* 💡 修正 8：安全碼卡片底部，設定 margin-bottom: 24px */
               <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center', marginBottom: '24px' }}>
                 <h3 className="custom-h2" style={{ fontSize: '20px', color: '#1E293B' }}>{groupTitle}</h3>
                 <p style={{ fontSize: '15px', color: '#0097B2', fontWeight: 'bold', margin: '4px 0 16px 0' }}>即時加點QR Code (獲得 {groupPoints} 個論點)</p>
