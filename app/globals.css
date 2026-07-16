@@ -44,13 +44,14 @@ html, body {
   box-sizing: border-box !important;
 }
 
+/* 尋找並替換成這段：內部上下內距調整為適度舒適、有呼吸感的 28px */
 .custom-card {
   background-color: #FFFFFF !important;
   color: #000000 !important;
   border: 2px solid #CBD5E1 !important;
   border-radius: 24px !important;
-  /* 💡 頂部(20px) 左右(24px) 底部(32px)：保留了您最滿意的底部圓潤度，但精準消除了頂部多餘的空隙 */
-  padding: 20px 24px 32px 24px !important; 
+  /* 💡 頂部與底部為最適中的 28px，左右為 24px，兼顧精緻度與版面呼吸感 */
+  padding: 28px 24px !important; 
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05) !important;
   width: 100% !important;
   max-width: 400px !important;
