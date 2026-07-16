@@ -14,13 +14,10 @@ interface AdminDashboardClientProps {
 export default function AdminDashboardClient({ adminName, initialRewards, transactions }: AdminDashboardClientProps) {
   const router = useRouter();
   
-  // 頁籤切換: 'scan' / 'manual' / 'students' / 'add_reward' / 'batch_add' / 'group_add'
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward' | 'batch_add' | 'group_add'>('scan');
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   const [student, setStudent] = useState<any>(null);
-  
-  // 💡 補齊被遺漏的歷史紀錄開關狀態
-  const [showHistory, setShowHistory] = useState(false); 
+  const [showHistory, setShowHistory] = useState(false);
   
   const [adjustMode, setAdjustMode] = useState<'general' | 'redeem'>('general');
   const [pointsAction, setPointsAction] = useState<'add' | 'deduct'>('add');
@@ -37,12 +34,10 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [newRewardPoints, setNewRewardPoints] = useState<number>(20);
   const [newRewardDesc, setNewRewardDesc] = useState('');
 
-  // 💡 補齊被遺漏的一次加點專用狀態
   const [batchAmount, setBatchAmount] = useState<number>(5);
   const [batchReason, setBatchReason] = useState('參與社課加點');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
 
-  // 💡 補齊被遺漏的即時加點專用狀態
   const [groupTitle, setGroupTitle] = useState('社課出席加點');
   const [groupPoints, setGroupPoints] = useState<number>(5);
   const [groupDuration, setGroupDuration] = useState<number>(5);
@@ -54,7 +49,6 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
 
-  // 初始化相機
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
     if (step === 'scan_or_search' && activeTab === 'scan') {
@@ -69,14 +63,12 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
     };
   }, [step, activeTab]);
 
-  // 載入學員名單
   useEffect(() => {
     if (activeTab === 'students' || activeTab === 'batch_add') {
       fetchStudents();
     }
   }, [activeTab]);
 
-  // 集體掃碼倒數計時
   useEffect(() => {
     if (!expiresAt) return;
     const interval = setInterval(() => {
@@ -311,7 +303,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>Hello! {adminName}</span>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <button 
-              onClick={() => setShowHistory(!showHistory)} 
+              onClick={() => { setShowHistory(!showHistory); }} 
               className="custom-btn-logout"
               style={{ 
                 display: 'flex', 
@@ -499,7 +491,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {filteredStudents.map((s) => (
-                  <div key={s.id} className="custom-card" style={{ maxWidth: '100%', padding: '16px 20px', margin: '0 auto 24px auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div key={s.id} className="custom-card" style={{ maxWidth: '100%', padding: '16px 20px', margin: '0 auto 12px auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ textAlign: 'left' }}>
                       <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B' }}>{s.name}</div>
                       <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>帳號: {s.username}</div>
@@ -536,7 +528,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
             <h2 className="custom-h2" style={{ paddingLeft: '8px', fontSize: '18px', marginTop: '32px' }}>目前獎品清單 (可於手機直接刪除)</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {rewardsList.map((reward) => (
-                <div key={reward.id} className="custom-card" style={{ maxWidth: '100%', padding: '16px 20px', margin: '0 auto 24px auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div key={reward.id} className="custom-card" style={{ maxWidth: '100%', padding: '16px 20px', margin: '0 auto 12px auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ textAlign: 'left', paddingRight: '8px' }}>
                     <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#1E293B' }}>{reward.title}</div>
                     <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>所需點數: {reward.points_required} 點</div>
@@ -555,11 +547,11 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 頁籤五：批次手動勾選加點 UI */}
+        {/* 頁籤五：一次加點 UI */}
         {activeTab === 'batch_add' && (
           <div>
             <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px' }}>
-              <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>設定批次加點參數</h3>
+              <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>設定一次加點參數</h3>
               <div>
                 <label className="custom-field-label">加點分數 (正數)</label>
                 <input type="number" min="1" value={batchAmount} onChange={e => setBatchAmount(Math.max(1, Number(e.target.value)))} className="custom-input" />
@@ -607,7 +599,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                       style={{ 
                         maxWidth: '100%', 
                         padding: '16px 20px', 
-                        margin: '0 auto 24px auto', 
+                        margin: '0 auto 12px auto', 
                         display: 'flex', 
                         alignItems: 'center',
                         gap: '16px',
@@ -634,7 +626,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 頁籤六：集體出席加點 QR Code 產生器 */}
+        {/* 頁籤六：即時出席加點 QR Code 產生器 (💡 內文已修正為「即時加點QR Code」) */}
         {activeTab === 'group_add' && (
           <div>
             {!claimId ? (

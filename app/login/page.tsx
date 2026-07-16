@@ -1,82 +1,52 @@
-'use client';
-import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
-function LoginForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setIsAdmin(searchParams.get('role') === 'admin');
-  }, [searchParams]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, isAdminLogin: isAdmin }),
-    });
-
-    const data = await res.json();
-    setLoading(false);
-
-    if (res.ok) {
-      // 💡 登入成功後，如果網址帶有 redirect 參數，則自動導回（例如導回領取點數頁面）
-      const redirectTo = searchParams.get('redirect');
-      if (redirectTo) {
-        router.push(redirectTo);
-      } else if (data.role === 'admin') {
-        router.push('/admin/dashboard');
-      } else {
-        router.push('/member/dashboard');
-      }
-    } else {
-      setError(data.error || '登入失敗');
-    }
-  };
-
-  return (
-    <div className="custom-card">
-      <h2 className="custom-h1" style={{ fontSize: '28px' }}>
-        {isAdmin ? '管理員專屬登入' : '社員登入'}
-      </h2>
-      {error && (
-        <div style={{ padding: '12px', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B91C1C', borderRadius: '12px', fontSize: '14px', marginBottom: '16px', textAlign: 'center' }}>
-          {error}
-        </div>
-      )}
-      <form onSubmit={handleLogin}>
-        <div>
-          <label className="custom-field-label">帳號</label>
-          <input type="text" required value={username} onChange={e => setUsername(e.target.value)} className="custom-input" placeholder="請輸入帳號" />
-        </div>
-        <div>
-          <label className="custom-field-label">密碼</label>
-          <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="custom-input" placeholder="請輸入密碼" />
-        </div>
-        <button type="submit" disabled={loading} className="custom-btn-primary" style={{ marginTop: '8px' }}>
-          {loading ? '登入中...' : '確認登入'}
-        </button>
-      </form>
-    </div>
-  );
-}
-
-export default function LoginPage() {
+export default function Home() {
   return (
     <div className="page-container">
-      <Suspense fallback={<div style={{ color: '#000000', fontSize: '18px' }}>載入中...</div>}>
-        <LoginForm />
-      </Suspense>
+      <div className="custom-card">
+        {/* 社團 Logo：上方新增 16px 舒適留白 */}
+        <img 
+          src="/logo.png" 
+          alt="辯論社 Logo" 
+          style={{ 
+            width: '100px', 
+            height: 'auto', 
+            marginTop: '16px', 
+            marginBottom: '20px', 
+            display: 'block', 
+            marginLeft: 'auto', 
+            marginRight: 'auto' 
+          }} 
+        />
+
+        {/* 主標題 */}
+        <h1 className="custom-h1" style={{ fontSize: '28px', marginBottom: '16px' }}>
+          辯論社線上集點系統
+        </h1>
+
+        {/* 內文說明 */}
+        <p className="custom-p" style={{ marginBottom: '32px' }}>
+          思無界，辯無限。
+          <br />
+          本系統得查看您的「論點」餘額與兌換獎品。
+        </p>
+
+        {/* 圓角登入按鈕區 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+          <Link href="/login?role=member" className="custom-btn-primary">
+            社員登入
+          </Link>
+          <Link href="/login?role=admin" className="custom-btn-secondary">
+            管理員登入
+          </Link>
+        </div>
+
+        {/* 副標帳號 */}
+        <div style={{ fontSize: '16px', color: '#64748B', marginTop: '16px', textAlign: 'center' }}>
+          @ptdtdb_115
+        </div>
+
+      </div>
     </div>
   );
 }
