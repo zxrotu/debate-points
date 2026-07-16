@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -62,22 +62,25 @@ export default function MemberDashboardClient({ profile, rewards, pendingRewardI
           </div>
         )}
 
-        {/* 餘額卡片：內部間距縮小，強制設定 margin-bottom: 32px 確保絕對分開 */}
-        <div className="custom-card" style={{ maxWidth: '100%', padding: '16px 20px', marginBottom: '32px', marginTop: '0px' }}>
-          <p style={{ fontSize: '13px', color: '#64748B', textAlign: 'center', margin: '0 0 4px 0' }}>我的「論點」餘額</p>
-          <p style={{ fontSize: '36px', fontWeight: '900', color: '#0097B2', textAlign: 'center', margin: 0 }}>
+        {/* 💡 整合卡片：將論點餘額、進度條與 QR Code 完美整合成一個精緻的高對比白色卡片 */}
+        <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '32px', marginTop: '0px', textAlign: 'center', padding: '24px' }}>
+          
+          {/* 上半部：餘額顯示 */}
+          <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 4px 0' }}>我的「論點」餘額</p>
+          <p style={{ fontSize: '36px', fontWeight: '900', color: '#0097B2', margin: '0 0 16px 0' }}>
             {profile.points} <span style={{ fontSize: '15px', fontWeight: 'normal', color: '#475569' }}>點</span>
           </p>
-        </div>
 
-        {/* 條碼區塊 */}
-        <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '32px', marginTop: '0px', textAlign: 'center' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B', margin: '0 0 12px 0' }}>出示此安全碼進行兌換</h3>
-          
-          <div style={{ display: 'inline-block', backgroundColor: '#FFFFFF', padding: '12px', border: '1px solid #CBD5E1', borderRadius: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-            <QRCodeSVG value={profile.qr_token} size={150} />
+          {/* 分隔線與下半部：安全驗證碼 */}
+          <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '20px', marginTop: '8px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 'bold', color: '#1E293B', margin: '0 0 12px 0' }}>出示此安全碼進行兌換</h3>
+            
+            <div style={{ display: 'inline-block', backgroundColor: '#FFFFFF', padding: '12px', border: '1px solid #CBD5E1', borderRadius: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+              <QRCodeSVG value={profile.qr_token} size={150} />
+            </div>
+            <p style={{ fontSize: '11px', color: '#64748B', marginTop: '14px', fontWeight: '300', marginBottom: '0px' }}>點數不可轉贈他人</p>
           </div>
-          <p style={{ fontSize: '11px', color: '#64748B', marginTop: '16px', fontWeight: '300' }}>點數不可轉贈他人</p>
+
         </div>
 
         {/* 獎品清單 */}
