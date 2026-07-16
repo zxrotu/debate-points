@@ -11,7 +11,8 @@ interface AdminDashboardClientProps {
 export default function AdminDashboardClient({ adminName, initialRewards }: AdminDashboardClientProps) {
   const router = useRouter();
   
-  const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward'>('scan');
+  // 頁籤切換: 'scan' / 'manual' / 'students' / 'add_reward' / 'batch_add'
+  const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward' | 'batch_add'>('scan');
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   const [student, setStudent] = useState<any>(null);
   
@@ -30,10 +31,16 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
   const [newRewardPoints, setNewRewardPoints] = useState<number>(20);
   const [newRewardDesc, setNewRewardDesc] = useState('');
 
+  // 批次加點專用狀態
+  const [batchAmount, setBatchAmount] = useState<number>(5);
+  const [batchReason, setBatchReason] = useState('參與社課加點');
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+
   const [manualUsername, setManualUsername] = useState('');
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
 
+  // 初始化相機
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
     if (step === 'scan_or_search' && activeTab === 'scan') {
@@ -48,8 +55,11 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     };
   }, [step, activeTab]);
 
+  // 切換到「學員名單」或「批次加點」時，撈取最新學員名冊
   useEffect(() => {
-    if (activeTab === 'students') fetchStudents();
+    if (activeTab === 'students' || activeTab === 'batch_add') {
+      fetchStudents();
+    }
   }, [activeTab]);
 
   useEffect(() => {
@@ -119,6 +129,37 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     }
   };
 
+  // 提交批次加點
+  const handleBatchPointsSubmit = async () => {
+    if (selectedStudentIds.length === 0) {
+      alert('請至少勾選一位學員！');
+      return;
+    }
+    setLoading(true);
+    setMessage({ text: '', type: '' });
+
+    const res = await fetch('/api/admin/batch-points', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student_ids: selectedStudentIds,
+        amount: batchAmount,
+        reason: batchReason,
+      }),
+    });
+
+    const data = await res.json();
+    setLoading(false);
+
+    if (res.ok) {
+      setMessage({ text: `批次加點成功！已順利為 ${data.count} 位社員加上 ${batchAmount} 個論點！`, type: 'success' });
+      setSelectedStudentIds([]); // 清空勾選
+      fetchStudents(); // 重新整理點數名冊
+    } else {
+      setMessage({ text: data.error || '批次加點失敗', type: 'error' });
+    }
+  };
+
   const handleAddRewardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -142,7 +183,6 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     }
   };
 
-  // 手機一鍵刪除禮品 (包含防呆警告)
   const handleDeleteReward = async (rewardId: number) => {
     if (!confirm('您確定要刪除這項禮品嗎？此操作無法還原。')) return;
     setLoading(true);
@@ -175,31 +215,56 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     router.push('/');
   };
 
+  // 學生多選切換
+  const handleToggleSelectStudent = (id: string) => {
+    setSelectedStudentIds((prev) => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  // 全選 / 取消全選
+  const handleToggleSelectAll = () => {
+    const currentFilteredIds = filteredStudents.map(s => s.id);
+    const allSelected = currentFilteredIds.every(id => selectedStudentIds.includes(id));
+
+    if (allSelected) {
+      // 取消勾選目前搜尋到的所有學生
+      setSelectedStudentIds((prev) => prev.filter(id => !currentFilteredIds.includes(id)));
+    } else {
+      // 勾選目前搜尋到的所有學生
+      setSelectedStudentIds((prev) => Array.from(new Set([...prev, ...currentFilteredIds])));
+    }
+  };
+
   const filteredStudents = allStudents.filter(s => s.name.includes(searchKeyword) || s.username.includes(searchKeyword));
 
   return (
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
       <div className="content-wrapper" style={{ maxWidth: '500px' }}>
         
+        {/* 標題欄 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
           <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>Hello! {adminName}</span>
           <button onClick={handleLogout} className="custom-btn-logout">登出</button>
         </header>
 
+        {/* 訊息提示 */}
         {message.text && (
           <div style={{ padding: '16px', borderRadius: '16px', border: '1px solid', marginBottom: '24px', textAlign: 'center', fontSize: '14px', backgroundColor: message.type === 'success' ? '#ECFDF5' : '#FEF2F2', borderColor: message.type === 'success' ? '#10B981' : '#F87171', color: message.type === 'success' ? '#047857' : '#B91C1C' }}>
             {message.text}
           </div>
         )}
 
+        {/* 💡 五頁籤精緻自適應導覽：排列整齊美觀 */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
-          <button onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}>掃描條碼</button>
-          <button onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}>輸入帳號</button>
-          <button onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}>學員名單</button>
+          <button onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px' }}>掃描條碼</button>
+          <button onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px' }}>輸入帳號</button>
+          <button onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px' }}>學員名單</button>
           <button onClick={() => { setActiveTab('add_reward'); setMessage({ text: '', type: '' }); }} className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}>新增禮品</button>
+          <button onClick={() => { setActiveTab('batch_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'batch_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}>批次加點</button>
         </div>
 
-        {activeTab !== 'students' && activeTab !== 'add_reward' && (
+        {activeTab !== 'students' && activeTab !== 'add_reward' && activeTab !== 'batch_add' && (
           <div>
             {step === 'scan_or_search' && (
               <div>
@@ -288,6 +353,7 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
                           <label className="custom-field-label">兌換數量</label>
                           <input type="number" min="1" value={redeemQuantity} onChange={e => setRedeemQuantity(Math.max(1, Number(e.target.value)))} className="custom-input" />
                         </div>
+                        
                         <div style={{ backgroundColor: '#FAF3E8', padding: '12px', borderRadius: '12px', border: '1px solid #CBD5E1', marginBottom: '24px', fontSize: '14px' }}>
                           <div style={{ marginBottom: '6px' }}>自動變更：<strong style={{ color: '#EF4444' }}>-{amount} 點</strong></div>
                           <div>自動事由：<strong>{reason}</strong></div>
@@ -355,7 +421,6 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
               </form>
             </div>
 
-            {/* 💡 禮品管理清單：管理員在手機上可直接一鍵刪除禮品 */}
             <h2 className="custom-h2" style={{ paddingLeft: '8px', fontSize: '18px', marginTop: '32px' }}>目前禮品清單 (可於手機直接刪除)</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {rewardsList.map((reward) => (
@@ -375,6 +440,111 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* 💡 頁籤五：批次加點 UI */}
+        {activeTab === 'batch_add' && (
+          <div>
+            {/* 加點參數卡片 */}
+            <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px' }}>
+              <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>設定批次加點參數</h3>
+              <div>
+                <label className="custom-field-label">加點分數 (正數)</label>
+                <input 
+                  type="number" 
+                  min="1" 
+                  value={batchAmount} 
+                  onChange={e => setBatchAmount(Math.max(1, Number(e.target.value)))} 
+                  className="custom-input" 
+                />
+              </div>
+              <div>
+                <label className="custom-field-label">變更事由</label>
+                <input 
+                  type="text" 
+                  value={batchReason} 
+                  onChange={e => setBatchReason(e.target.value)} 
+                  className="custom-input" 
+                />
+              </div>
+              <button 
+                onClick={handleBatchPointsSubmit} 
+                disabled={loading || selectedStudentIds.length === 0}
+                className="custom-btn-primary" 
+                style={{ width: '100%', marginTop: '8px', backgroundColor: selectedStudentIds.length > 0 ? '#0097B2' : '#CBD5E1', cursor: selectedStudentIds.length > 0 ? 'pointer' : 'not-allowed', boxShadow: 'none' }}
+              >
+                {loading ? '批次提交中...' : `確認批次加點 (${selectedStudentIds.length} 人)`}
+              </button>
+            </div>
+
+            {/* 學員多選列表 */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '0 4px' }}>
+              <h2 className="custom-h2" style={{ margin: 0, fontSize: '18px' }}>選擇學員名單</h2>
+              <button 
+                onClick={handleToggleSelectAll} 
+                className="custom-btn-logout"
+                style={{ fontSize: '12px', padding: '4px 12px' }}
+              >
+                {filteredStudents.every(id => selectedStudentIds.includes(id.id)) ? '取消全選' : '一鍵全選'}
+              </button>
+            </div>
+
+            {/* 搜尋過濾 */}
+            <div style={{ marginBottom: '16px' }}>
+              <input 
+                type="text" 
+                placeholder="搜尋學員姓名或帳號..." 
+                value={searchKeyword} 
+                onChange={e => setSearchKeyword(e.target.value)} 
+                className="custom-input" 
+                style={{ marginBottom: '0px' }}
+              />
+            </div>
+
+            {loading ? (
+              <p style={{ textAlign: 'center', color: '#64748B' }}>學員清單載入中...</p>
+            ) : filteredStudents.length === 0 ? (
+              <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center' }}>
+                <p style={{ color: '#64748B', margin: 0 }}>找不到符合條件的社員</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {filteredStudents.map((s) => {
+                  const isChecked = selectedStudentIds.includes(s.id);
+                  return (
+                    <div 
+                      key={s.id} 
+                      onClick={() => handleToggleSelectStudent(s.id)}
+                      className="custom-card" 
+                      style={{ 
+                        maxWidth: '100%', 
+                        padding: '16px 20px', 
+                        margin: 0, 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        gap: '16px',
+                        cursor: 'pointer',
+                        border: isChecked ? '2px solid #0097B2' : '2px solid #CBD5E1',
+                        backgroundColor: isChecked ? '#F1FAFC' : '#FFFFFF'
+                      }}
+                    >
+                      {/* 自訂高對比大複選框 */}
+                      <input 
+                        type="checkbox" 
+                        checked={isChecked}
+                        onChange={() => {}} // 點擊卡片本體處理切換
+                        style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#0097B2' }}
+                      />
+                      <div style={{ textAlign: 'left', flexGrow: 1 }}>
+                        <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B' }}>{s.name}</div>
+                        <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>帳號: {s.username} | 目前: {s.points} 點</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
