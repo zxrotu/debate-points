@@ -13,7 +13,7 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
   // 頁籤切換: 'scan' (掃描) / 'manual' (手動) / 'requests' (審核申請)
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'requests'>('scan');
   
-  // 流程控制狀態 (掃描與手動時適用)
+  // 流程控制狀態
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   
   // 當前選定社員
@@ -31,17 +31,19 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
 
-  // 初始化相機
+  // 精準控制：唯有在「掃描頁籤且在第一步」時，才進行相機渲染；其餘時間 100% 釋放鏡頭與 DOM 元件
   useEffect(() => {
+    let scanner: Html5QrcodeScanner | null = null;
+
     if (step === 'scan_or_search' && activeTab === 'scan') {
-      const scanner = new Html5QrcodeScanner(
+      scanner = new Html5QrcodeScanner(
         'reader',
         { 
           fps: 10, 
           qrbox: { width: 250, height: 250 },
           supportedScanTypes: [0], // 僅限相機
           videoConstraints: {
-            facingMode: "environment" // 鎖死後置鏡頭
+            facingMode: "environment" // 鎖死後鏡頭
           }
         },
         false
@@ -49,18 +51,23 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
 
       scanner.render(
         async (decodedText) => {
-          scanner.clear();
+          if (scanner) {
+            scanner.clear().catch(err => console.error(err));
+          }
           await handleFetchStudent({ qr_token: decodedText });
         },
         (error) => {
           // 忽略掃描異常
         }
       );
-
-      return () => {
-        scanner.clear().catch(err => console.error("Scanner clear error", err));
-      };
     }
+
+    // 清除機制：確保切換到「輸入帳號」或「審核申請」時，相機完全關閉、釋放與不留任何 UI 殘留
+    return () => {
+      if (scanner) {
+        scanner.clear().catch(err => console.error("Scanner clear error", err));
+      }
+    };
   }, [step, activeTab]);
 
   // 切換到「審核申請」頁籤時，向後端獲取申請數據
@@ -163,11 +170,11 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
       <div className="content-wrapper" style={{ maxWidth: '500px' }}>
         
-        {/* 標題欄 */}
+        {/* 標題欄：放大至 22px 粗體，改為 Hello! 某某某 格式 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
           <div style={{ flexGrow: 1 }}>
-            <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B' }}>
-              管理員:(您好!{adminName})
+            <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>
+              Hello! {adminName}
             </span>
           </div>
           <button onClick={handleLogout} className="custom-btn-logout">
@@ -182,26 +189,26 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
           </div>
         )}
 
-        {/* 三分頁導覽：按鈕用開一點 */}
+        {/* 三分頁導覽：按鈕改為 4字整齊一行字，拉開 12px 間距 */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
           <button 
             onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} 
             className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
-            style={{ flex: 1, padding: '10px 8px', fontSize: '13px' }}
+            style={{ flex: 1, padding: '10px 4px', fontSize: '13px' }}
           >
-            掃描 QR
+            掃描條碼
           </button>
           <button 
             onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} 
             className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
-            style={{ flex: 1, padding: '10px 8px', fontSize: '13px' }}
+            style={{ flex: 1, padding: '10px 4px', fontSize: '13px' }}
           >
-            輸入學號
+            輸入帳號
           </button>
           <button 
             onClick={() => { setActiveTab('requests'); setMessage({ text: '', type: '' }); }} 
             className={activeTab === 'requests' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
-            style={{ flex: 1, padding: '10px 8px', fontSize: '13px' }}
+            style={{ flex: 1, padding: '10px 4px', fontSize: '13px' }}
           >
             審核申請
           </button>
@@ -210,7 +217,7 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
         {/* 頁籤一與頁籤二的流程 */}
         {activeTab !== 'requests' && (
           <div>
-            {/* 步驟 1：掃描與搜尋 */}
+            {/* 步驟 1：掃描或搜尋 */}
             {step === 'scan_or_search' && (
               <div>
                 {activeTab === 'scan' ? (
@@ -219,11 +226,12 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
                     <div id="reader" style={{ borderRadius: '16px', overflow: 'hidden', border: '2px solid #CBD5E1' }}></div>
                   </div>
                 ) : (
+                  // 💡 輸入帳號區塊：100% 卸載相機，保證絕對乾淨，無任何 QR Code 掃描按鈕或雜物
                   <div className="custom-card" style={{ maxWidth: '100%' }}>
                     <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center' }}>手動查詢社員</h3>
                     <div>
-                      <label className="custom-field-label">社員登入帳號 (學號)</label>
-                      <input type="text" placeholder="例如 student01" value={manualUsername} onChange={e => setManualUsername(e.target.value)} className="custom-input" />
+                      <label className="custom-field-label">社員登入帳號 (帳號)</label>
+                      <input type="text" placeholder="例如 123" value={manualUsername} onChange={e => setManualUsername(e.target.value)} className="custom-input" />
                       <button onClick={() => handleFetchStudent({ username: manualUsername })} disabled={loading || !manualUsername} className="custom-btn-primary" style={{ width: '100%' }}>
                         {loading ? '查詢中...' : '查詢社員資料'}
                       </button>
@@ -244,7 +252,7 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
                     <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1E293B', marginTop: '2px' }}>{student.name}</div>
                   </div>
                   <div>
-                    <span style={{ fontSize: '13px', color: '#64748B' }}>學號 (帳號)</span>
+                    <span style={{ fontSize: '13px', color: '#64748B' }}>登入帳號 (帳號)</span>
                     <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B', marginTop: '2px' }}>{student.username}</div>
                   </div>
                   <div>

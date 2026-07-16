@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -19,7 +19,6 @@ export default function MemberDashboardClient({ profile, rewards, pendingRewardI
     router.push('/');
   };
 
-  // 學生發起線上兌換申請
   const handleRedeemRequest = async (rewardId: number) => {
     setLoadingId(rewardId);
     setSuccessMsg('');
@@ -35,7 +34,7 @@ export default function MemberDashboardClient({ profile, rewards, pendingRewardI
 
     if (res.ok) {
       setSuccessMsg('兌換申請已送出，請等待管理員核准');
-      router.refresh(); // 刷新頁面重新整理狀態
+      router.refresh();
     } else {
       alert(data.error || '申請失敗');
     }
@@ -45,11 +44,11 @@ export default function MemberDashboardClient({ profile, rewards, pendingRewardI
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
       <div className="content-wrapper">
         
-        {/* 標題欄：學生問候語與置右登出按鈕 */}
+        {/* 標題欄：放大至 22px 粗體，改為 Hello! 某某某 格式 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
           <div style={{ flexGrow: 1 }}>
-            <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B' }}>
-              學生:(您好!{profile.name}同學)
+            <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>
+              Hello! {profile.name}
             </span>
           </div>
           <button onClick={handleLogout} className="custom-btn-logout">
@@ -63,15 +62,15 @@ export default function MemberDashboardClient({ profile, rewards, pendingRewardI
           </div>
         )}
 
-        {/* 餘額卡片 */}
-        <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '20px' }}>
-          <p style={{ fontSize: '14px', color: '#64748B', textAlign: 'center', margin: '0 0 8px 0' }}>我的「論點」餘額</p>
-          <p style={{ fontSize: '48px', fontWeight: '900', color: '#0097B2', textAlign: 'center', margin: 0 }}>
-            {profile.points} <span style={{ fontSize: '18px', fontWeight: 'normal', color: '#475569' }}>點</span>
+        {/* 餘額卡片：內部間距縮小，字體改為 36px，下方間距拉大至 32px 拒絕黏貼 */}
+        <div className="custom-card" style={{ maxWidth: '100%', padding: '16px 20px', marginBottom: '32px' }}>
+          <p style={{ fontSize: '13px', color: '#64748B', textAlign: 'center', margin: '0 0 4px 0' }}>我的「論點」餘額</p>
+          <p style={{ fontSize: '36px', fontWeight: '900', color: '#0097B2', textAlign: 'center', margin: 0 }}>
+            {profile.points} <span style={{ fontSize: '15px', fontWeight: 'normal', color: '#475569' }}>點</span>
           </p>
         </div>
 
-        {/* 靜態安全驗證碼 */}
+        {/* 條碼區塊 */}
         <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', textAlign: 'center' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B', margin: '0 0 12px 0' }}>出示此安全碼進行兌換</h3>
           
@@ -81,7 +80,7 @@ export default function MemberDashboardClient({ profile, rewards, pendingRewardI
           <p style={{ fontSize: '11px', color: '#64748B', marginTop: '16px', fontWeight: '300' }}>點數不可轉贈他人</p>
         </div>
 
-        {/* 獎品清單與申請按鈕 */}
+        {/* 獎品清單 */}
         <div>
           <h2 className="custom-h2" style={{ paddingLeft: '8px' }}>可兌換獎品</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
