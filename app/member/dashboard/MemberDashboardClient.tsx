@@ -8,7 +8,7 @@ import { Telescope } from 'lucide-react';
 interface MemberDashboardClientProps {
   profile: any;
   rewards: any[];
-  transactions: any[]; // 💡 補上此型態宣告
+  transactions: any[];
 }
 
 export default function MemberDashboardClient({ profile, rewards, transactions }: MemberDashboardClientProps) {
@@ -104,6 +104,7 @@ export default function MemberDashboardClient({ profile, rewards, transactions }
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
       <div className="content-wrapper">
         
+        {/* 標題欄 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
           <div style={{ flexGrow: 1 }}>
             <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>
@@ -159,7 +160,7 @@ export default function MemberDashboardClient({ profile, rewards, transactions }
         )}
 
         {showHistory && (
-          <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '32px', padding: '24px' }}>
+          <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', padding: '24px' }}>
             <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center', marginBottom: '16px' }}>論點異動歷史紀錄</h3>
             {transactions.length === 0 ? (
               <p style={{ textAlign: 'center', color: '#64748B', fontSize: '14px', margin: 0 }}>目前尚無任何論點異動紀錄</p>
@@ -197,7 +198,7 @@ export default function MemberDashboardClient({ profile, rewards, transactions }
           </div>
         </div>
 
-        {/* 唯讀獎品清單 */}
+        {/* 獎品清單 */}
         <div>
           <h2 className="custom-h2" style={{ paddingLeft: '8px', fontSize: '18px', marginBottom: '12px' }}>獎品列表</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
