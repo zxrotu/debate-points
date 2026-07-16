@@ -10,105 +10,64 @@ interface AdminDashboardClientProps {
 
 export default function AdminDashboardClient({ adminName, initialRewards }: AdminDashboardClientProps) {
   const router = useRouter();
-  
-  // 頁籤切換: 'scan' (掃描條碼) / 'manual' (輸入帳號) / 'students' (學員名單) / 'add_reward' (新增禮品)
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward'>('scan');
-  
-  // 流程控制狀態 (掃描與手動時適用)
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   
-  // 當前選定社員
   const [student, setStudent] = useState<any>(null);
-  
-  // 加扣點設定
-  const [adjustMode, setAdjustMode] = useState<'general' | 'redeem'>('general'); // 'general' 一般加扣點, 'redeem' 兌換禮品
+  const [adjustMode, setAdjustMode] = useState<'general' | 'redeem'>('general');
   const [pointsAction, setPointsAction] = useState<'add' | 'deduct'>('add');
   const [amount, setAmount] = useState<number>(5);
   const [reason, setReason] = useState('參與社課加點');
   
-  // 禮品專屬加扣點設定
   const [rewardsList, setRewardsList] = useState<any[]>(initialRewards);
   const [selectedRewardId, setSelectedRewardId] = useState<number>(initialRewards[0]?.id || 0);
   const [redeemQuantity, setRedeemQuantity] = useState<number>(1);
 
-  // 學員名單功能資料
   const [allStudents, setAllStudents] = useState<any[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
-
-  // 新增禮品資料
   const [newRewardTitle, setNewRewardTitle] = useState('');
   const [newRewardPoints, setNewRewardPoints] = useState<number>(20);
   const [newRewardDesc, setNewRewardDesc] = useState('');
 
+  const [manualUsername, setManualUsername] = useState('');
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
 
-  // 初始化相機
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
-
     if (step === 'scan_or_search' && activeTab === 'scan') {
-      scanner = new Html5QrcodeScanner(
-        'reader',
-        { 
-          fps: 10, 
-          qrbox: { width: 250, height: 250 },
-          supportedScanTypes: [0], // 僅限相機
-          videoConstraints: {
-            facingMode: "environment" // 鎖死後鏡頭
-          }
-        },
-        false
-      );
-
-      scanner.render(
-        async (decodedText) => {
-          if (scanner) {
-            scanner.clear().catch(err => console.error(err));
-          }
-          await handleFetchStudent({ qr_token: decodedText });
-        },
-        (error) => {
-          // 忽略掃描中的微小異常
-        }
-      );
+      scanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: { width: 250, height: 250 }, supportedScanTypes: [0], videoConstraints: { facingMode: "environment" } }, false);
+      scanner.render(async (text) => {
+        if (scanner) scanner.clear().catch(err => console.error(err));
+        await handleFetchStudent({ qr_token: text });
+      }, () => {});
     }
-
     return () => {
-      if (scanner) {
-        scanner.clear().catch(err => console.error("Scanner clear error", err));
-      }
+      if (scanner) scanner.clear().catch(err => console.error("Scanner clear error", err));
     };
   }, [step, activeTab]);
 
-  // 切換到「學員名單」頁籤時，獲取數據
   useEffect(() => {
-    if (activeTab === 'students') {
-      fetchStudents();
-    }
+    if (activeTab === 'students') fetchStudents();
   }, [activeTab]);
 
-  // 根據選擇的禮品與數量，自動計算扣點與填入事由
   useEffect(() => {
     if (adjustMode === 'redeem' && selectedRewardId) {
-      const selectedReward = rewardsList.find(r => r.id === selectedRewardId);
-      if (selectedReward) {
+      const reward = rewardsList.find(r => r.id === selectedRewardId);
+      if (reward) {
         setPointsAction('deduct');
-        setAmount(selectedReward.points_required * redeemQuantity);
-        setReason(`兌換禮品-${selectedReward.title}-${redeemQuantity}個`);
+        setAmount(reward.points_required * redeemQuantity);
+        setReason(`兌換禮品-${reward.title}-${redeemQuantity}個`);
       }
     }
   }, [adjustMode, selectedRewardId, redeemQuantity, rewardsList]);
 
-  // 拉取全體學生資料
   const fetchStudents = async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/admin/students');
       const data = await res.json();
-      if (res.ok) {
-        setAllStudents(data.students || []);
-      }
+      if (res.ok) setAllStudents(data.students || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -116,20 +75,16 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     }
   };
 
-  // 第一步：讀取學生資訊
   const handleFetchStudent = async (payload: { qr_token?: string; username?: string }) => {
     setLoading(true);
     setMessage({ text: '', type: '' });
-
     const res = await fetch('/api/admin/student-info', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-
     const data = await res.json();
     setLoading(false);
-
     if (res.ok) {
       setStudent(data.student);
       setStep('student_confirm');
@@ -142,33 +97,19 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     }
   };
 
-  // 第三步：提交加扣點
   const handlePointsActionSubmit = async () => {
     setLoading(true);
     setMessage({ text: '', type: '' });
-
     const finalAmount = pointsAction === 'add' ? amount : -amount;
-
     const res = await fetch('/api/admin/points', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        student_id: student.id,
-        username: student.username,
-        qr_token: student.qr_token,
-        amount: finalAmount,
-        reason: reason,
-      }),
+      body: JSON.stringify({ student_id: student.id, username: student.username, qr_token: student.qr_token, amount: finalAmount, reason }),
     });
-
     const data = await res.json();
     setLoading(false);
-
     if (res.ok) {
-      setMessage({
-        text: `操作成功！社員 ${data.memberName} 的新餘額為: ${data.newPoints} 點`,
-        type: 'success',
-      });
+      setMessage({ text: `操作成功！社員 ${data.memberName} 的新餘額為: ${data.newPoints} 點`, type: 'success' });
       setStudent(null);
       setManualUsername('');
       setStep('scan_or_search');
@@ -177,31 +118,21 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     }
   };
 
-  // 提交新增禮品
   const handleAddRewardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage({ text: '', type: '' });
-
     const res = await fetch('/api/admin/rewards', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: newRewardTitle,
-        points_required: newRewardPoints,
-        description: newRewardDesc,
-      }),
+      body: JSON.stringify({ title: newRewardTitle, points_required: newRewardPoints, description: newRewardDesc }),
     });
-
     const data = await res.json();
     setLoading(false);
-
     if (res.ok) {
       setMessage({ text: `成功新增禮品: ${newRewardTitle}`, type: 'success' });
       setRewardsList((prev) => [...prev, data.reward].sort((a, b) => a.points_required - b.points_required));
-      if (!selectedRewardId) {
-        setSelectedRewardId(data.reward.id);
-      }
+      if (!selectedRewardId) setSelectedRewardId(data.reward.id);
       setNewRewardTitle('');
       setNewRewardPoints(20);
       setNewRewardDesc('');
@@ -215,28 +146,17 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     router.push('/');
   };
 
-  // 過濾學生搜尋
-  const filteredStudents = allStudents.filter(s => 
-    s.name.includes(searchKeyword) || s.username.includes(searchKeyword)
-  );
+  const filteredStudents = allStudents.filter(s => s.name.includes(searchKeyword) || s.username.includes(searchKeyword));
 
   return (
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
       <div className="content-wrapper" style={{ maxWidth: '500px' }}>
         
-        {/* 標題欄 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
-          <div style={{ flexGrow: 1 }}>
-            <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>
-              Hello! {adminName}
-            </span>
-          </div>
-          <button onClick={handleLogout} className="custom-btn-logout">
-            登出
-          </button>
+          <span style={{ fontSize: '22px', font textAnchor: 'bold', color: '#1E293B', fontWeight: 'bold' }}>Hello! {adminName}</span>
+          <button onClick={handleLogout} className="custom-btn-logout">登出</button>
         </header>
 
-        {/* 訊息提示 */}
         {message.text && (
           <div style={{ padding: '16px', borderRadius: '16px', border: '1px solid', marginBottom: '24px', textAlign: 'center', fontSize: '14px', backgroundColor: message.type === 'success' ? '#ECFDF5' : '#FEF2F2', borderColor: message.type === 'success' ? '#10B981' : '#F87171', color: message.type === 'success' ? '#047857' : '#B91C1C' }}>
             {message.text}
@@ -245,70 +165,27 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
 
         {/* 四頁籤精緻導覽 */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
-          <button 
-            onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} 
-            className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
-            style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}
-          >
-            掃描條碼
-          </button>
-          <button 
-            onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} 
-            className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
-            style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}
-          >
-            輸入帳號
-          </button>
-          <button 
-            onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} 
-            className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
-            style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}
-          >
-            學員名單
-          </button>
-          <button 
-            onClick={() => { setActiveTab('add_reward'); setMessage({ text: '', type: '' }); }} 
-            className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
-            style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}
-          >
-            新增禮品
-          </button>
+          <button onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}>掃描條碼</button>
+          <button onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}>輸入帳號</button>
+          <button onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}>學員名單</button>
+          <button onClick={() => { setActiveTab('add_reward'); setMessage({ text: '', type: '' }); }} className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}>新增禮品</button>
         </div>
 
         {activeTab !== 'students' && activeTab !== 'add_reward' && (
           <div>
             {step === 'scan_or_search' && (
               <div>
-                <div 
-                  className="custom-card" 
-                  style={{ 
-                    maxWidth: '100%', 
-                    textAlign: 'center', 
-                    display: activeTab === 'scan' ? 'block' : 'none',
-                    marginTop: '0px',
-                    marginBottom: '24px'
-                  }}
-                >
+                <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center', display: activeTab === 'scan' ? 'block' : 'none', marginTop: '0px', marginBottom: '24px' }}>
                   <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '16px' }}>請允許相機權限，將社員 QR Code 放置於鏡頭前</p>
                   <div id="reader" style={{ borderRadius: '16px', overflow: 'hidden', border: '2px solid #CBD5E1' }}></div>
                 </div>
 
-                <div 
-                  className="custom-card" 
-                  style={{ 
-                    maxWidth: '100%', 
-                    display: activeTab === 'manual' ? 'block' : 'none',
-                    marginTop: '0px',
-                    marginBottom: '24px'
-                  }}
-                >
+                <div className="custom-card" style={{ maxWidth: '100%', display: activeTab === 'manual' ? 'block' : 'none', marginTop: '0px', marginBottom: '24px' }}>
                   <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center' }}>手動查詢社員</h3>
                   <div>
                     <label className="custom-field-label">社員登入帳號 (帳號)</label>
                     <input type="text" placeholder="例如 123" value={manualUsername} onChange={e => setManualUsername(e.target.value)} className="custom-input" />
-                    <button onClick={() => handleFetchStudent({ username: manualUsername })} disabled={loading || !manualUsername} className="custom-btn-primary" style={{ width: '100%' }}>
-                      {loading ? '查詢中...' : '查詢社員資料'}
-                    </button>
+                    <button onClick={() => handleFetchStudent({ username: manualUsername })} disabled={loading || !manualUsername} className="custom-btn-primary" style={{ width: '100%' }}>{loading ? '查詢中...' : '查詢社員資料'}</button>
                   </div>
                 </div>
               </div>
@@ -317,7 +194,6 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
             {step === 'student_confirm' && student && (
               <div className="custom-card" style={{ maxWidth: '100%' }}>
                 <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>確認社員資訊</h3>
-                
                 <div style={{ backgroundColor: '#FAF3E8', padding: '16px', borderRadius: '16px', border: '1px solid #CBD5E1', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div>
                     <span style={{ fontSize: '13px', color: '#64748B' }}>姓名</span>
@@ -332,70 +208,29 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
                     <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#0097B2', marginTop: '2px' }}>{student.points} 點</div>
                   </div>
                 </div>
-
                 <div style={{ display: 'flex', gap: '16px' }}>
-                  <button 
-                    onClick={() => { setStudent(null); setStep('scan_or_search'); }} 
-                    className="custom-btn-secondary" 
-                    style={{ flex: 1 }}
-                  >
-                    取消
-                  </button>
-                  <button 
-                    onClick={() => setStep('points_adjust')} 
-                    className="custom-btn-primary" 
-                    style={{ flex: 1 }}
-                  >
-                    確認
-                  </button>
+                  <button onClick={() => { setStudent(null); setStep('scan_or_search'); }} className="custom-btn-secondary" style={{ flex: 1 }}>取消</button>
+                  <button onClick={() => setStep('points_adjust')} className="custom-btn-primary" style={{ flex: 1 }}>確認</button>
                 </div>
               </div>
             )}
 
-            {/* 步驟 3 :加扣點與自動計算 */}
             {step === 'points_adjust' && student && (
               <div className="custom-card" style={{ maxWidth: '100%' }}>
                 <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '4px' }}>設定點數變更</h3>
-                <p className="custom-p" style={{ fontSize: '14px', marginBottom: '20px' }}>
-                  對象: {student.name} (目前 {student.points} 點)
-                </p>
+                <p className="custom-p" style={{ fontSize: '14px', marginBottom: '20px' }}>對象: {student.name} (目前 {student.points} 點)</p>
 
                 <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-                  <button 
-                    onClick={() => { setAdjustMode('general'); setPointsAction('add'); setAmount(5); setReason('參與社課加點'); }} 
-                    className={adjustMode === 'general' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
-                    style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }}
-                  >
-                    一般加扣點
-                  </button>
-                  <button 
-                    onClick={() => { setAdjustMode('redeem'); if (rewardsList.length > 0) { setSelectedRewardId(rewardsList[0].id); } }} 
-                    className={adjustMode === 'redeem' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
-                    style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }}
-                  >
-                    兌換禮品
-                  </button>
+                  <button onClick={() => { setAdjustMode('general'); setPointsAction('add'); setAmount(5); setReason('參與社課加點'); }} className={adjustMode === 'general' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }}>一般加扣點</button>
+                  <button onClick={() => { setAdjustMode('redeem'); if (rewardsList.length > 0) { setSelectedRewardId(rewardsList[0].id); } }} className={adjustMode === 'redeem' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }}>兌換禮品</button>
                 </div>
 
                 {adjustMode === 'general' ? (
                   <div>
                     <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
-                      <button 
-                        onClick={() => setPointsAction('add')} 
-                        className={pointsAction === 'add' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
-                        style={{ flex: 1, padding: '10px' }}
-                      >
-                        加點
-                      </button>
-                      <button 
-                        onClick={() => setPointsAction('deduct')} 
-                        className={pointsAction === 'deduct' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
-                        style={{ flex: 1, padding: '10px' }}
-                      >
-                        扣點
-                      </button>
+                      <button onClick={() => setPointsAction('add')} className={pointsAction === 'add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px' }}>加點</button>
+                      <button onClick={() => setPointsAction('deduct')} className={pointsAction === 'deduct' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px' }}>扣點</button>
                     </div>
-
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <div>
                         <label className="custom-field-label">變更點數值 (正數)</label>
@@ -415,29 +250,16 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <div>
                           <label className="custom-field-label">選擇兌換禮品</label>
-                          <select 
-                            value={selectedRewardId} 
-                            onChange={e => setSelectedRewardId(Number(e.target.value))}
-                            className="custom-input"
-                          >
+                          <select value={selectedRewardId} onChange={e => setSelectedRewardId(Number(e.target.value))} className="custom-input">
                             {rewardsList.map(r => (
-                              <option key={r.id} value={r.id}>
-                                {r.title} (扣除 {r.points_required} 點)
-                              </option>
+                              <option key={r.id} value={r.id}>{r.title} (扣除 {r.points_required} 點)</option>
                             ))}
                           </select>
                         </div>
                         <div>
                           <label className="custom-field-label">兌換數量</label>
-                          <input 
-                            type="number" 
-                            min="1" 
-                            value={redeemQuantity} 
-                            onChange={e => setRedeemQuantity(Math.max(1, Number(e.target.value)))} 
-                            className="custom-input" 
-                          />
+                          <input type="number" min="1" value={redeemQuantity} onChange={e => setRedeemQuantity(Math.max(1, Number(e.target.value)))} className="custom-input" />
                         </div>
-                        
                         <div style={{ backgroundColor: '#FAF3E8', padding: '12px', borderRadius: '12px', border: '1px solid #CBD5E1', marginBottom: '24px', fontSize: '14px' }}>
                           <div style={{ marginBottom: '6px' }}>自動變更：<strong style={{ color: '#EF4444' }}>-{amount} 點</strong></div>
                           <div>自動事由：<strong>{reason}</strong></div>
@@ -448,21 +270,8 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
                 )}
 
                 <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
-                  <button 
-                    onClick={() => setStep('student_confirm')} 
-                    className="custom-btn-secondary" 
-                    style={{ flex: 1 }}
-                  >
-                    上一步
-                  </button>
-                  <button 
-                    onClick={handlePointsActionSubmit} 
-                    disabled={loading || (adjustMode === 'redeem' && rewardsList.length === 0)}
-                    className="custom-btn-primary" 
-                    style={{ flex: 1 }}
-                  >
-                    {loading ? '提交中...' : '確認提交'}
-                  </button>
+                  <button onClick={() => setStep('student_confirm')} className="custom-btn-secondary" style={{ flex: 1 }}>上一步</button>
+                  <button onClick={handlePointsActionSubmit} disabled={loading || (adjustMode === 'redeem' && rewardsList.length === 0)} className="custom-btn-primary" style={{ flex: 1 }}>{loading ? '提交中...' : '確認提交'}</button>
                 </div>
               </div>
             )}
@@ -473,16 +282,8 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
           <div>
             <h2 className="custom-h2" style={{ paddingLeft: '8px' }}>社員點數名冊</h2>
             <div style={{ marginBottom: '16px' }}>
-              <input 
-                type="text" 
-                placeholder="搜尋姓名或帳號..." 
-                value={searchKeyword} 
-                onChange={e => setSearchKeyword(e.target.value)} 
-                className="custom-input" 
-                style={{ marginBottom: '0px' }}
-              />
+              <input type="text" placeholder="搜尋姓名或帳號..." value={searchKeyword} onChange={e => setSearchKeyword(e.target.value)} className="custom-input" style={{ marginBottom: '0px' }} />
             </div>
-
             {loading ? (
               <p style={{ textAlign: 'center', color: '#64748B' }}>名單加載中...</p>
             ) : filteredStudents.length === 0 ? (
@@ -497,9 +298,7 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
                       <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B' }}>{s.name}</div>
                       <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>帳號: {s.username}</div>
                     </div>
-                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#0097B2' }}>
-                      {s.points} <span style={{ fontSize: '12px', fontWeight: 'normal', color: '#475569' }}>點</span>
-                    </div>
+                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#0097B2' }}>{s.points} <span style={{ fontSize: '12px', fontWeight: 'normal', color: '#475569' }}>點</span></div>
                   </div>
                 ))}
               </div>
@@ -513,39 +312,17 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
             <form onSubmit={handleAddRewardSubmit}>
               <div>
                 <label className="custom-field-label">禮品名稱</label>
-                <input 
-                  type="text" 
-                  required 
-                  placeholder="例如 辯論社馬克杯" 
-                  value={newRewardTitle} 
-                  onChange={e => setNewRewardTitle(e.target.value)} 
-                  className="custom-input" 
-                />
+                <input type="text" required placeholder="例如 辯論社馬克杯" value={newRewardTitle} onChange={e => setNewRewardTitle(e.target.value)} className="custom-input" />
               </div>
               <div>
                 <label className="custom-field-label">所需「論點」點數</label>
-                <input 
-                  type="number" 
-                  min="1" 
-                  required 
-                  value={newRewardPoints} 
-                  onChange={e => setNewRewardPoints(Math.max(1, Number(e.target.value)))} 
-                  className="custom-input" 
-                />
+                <input type="number" min="1" required value={newRewardPoints} onChange={e => setNewRewardPoints(Math.max(1, Number(e.target.value)))} className="custom-input" />
               </div>
               <div>
                 <label className="custom-field-label">禮品描述 (選填)</label>
-                <input 
-                  type="text" 
-                  placeholder="簡短描述這項禮品..." 
-                  value={newRewardDesc} 
-                  onChange={e => setNewRewardDesc(e.target.value)} 
-                  className="custom-input" 
-                />
+                <input type="text" placeholder="簡短描述這項禮品..." value={newRewardDesc} onChange={e => setNewRewardDesc(e.target.value)} className="custom-input" />
               </div>
-              <button type="submit" disabled={loading} className="custom-btn-primary" style={{ width: '100%', marginTop: '8px' }}>
-                {loading ? '新增中...' : '確認新增'}
-              </button>
+              <button type="submit" disabled={loading} className="custom-btn-primary" style={{ width: '100%', marginTop: '8px' }}>{loading ? '新增中...' : '確認新增'}</button>
             </form>
           </div>
         )}
