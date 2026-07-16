@@ -142,6 +142,34 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     }
   };
 
+  // 手機一鍵刪除禮品 (包含防呆警告)
+  const handleDeleteReward = async (rewardId: number) => {
+    if (!confirm('您確定要刪除這項禮品嗎？此操作無法還原。')) return;
+    setLoading(true);
+    setMessage({ text: '', type: '' });
+    try {
+      const res = await fetch('/api/admin/rewards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', id: rewardId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({ text: data.message || '已成功刪除該禮品', type: 'success' });
+        setRewardsList((prev) => prev.filter(r => r.id !== rewardId));
+        if (selectedRewardId === rewardId) {
+          setSelectedRewardId(rewardsList.find(r => r.id !== rewardId)?.id || 0);
+        }
+      } else {
+        setMessage({ text: data.error || '刪除失敗', type: 'error' });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/');
@@ -307,23 +335,46 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
         )}
 
         {activeTab === 'add_reward' && (
-          <div className="custom-card" style={{ maxWidth: '100%' }}>
-            <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>新增社團禮品</h3>
-            <form onSubmit={handleAddRewardSubmit}>
-              <div>
-                <label className="custom-field-label">禮品名稱</label>
-                <input type="text" required placeholder="例如 辯論社馬克杯" value={newRewardTitle} onChange={e => setNewRewardTitle(e.target.value)} className="custom-input" />
-              </div>
-              <div>
-                <label className="custom-field-label">所需「論點」點數</label>
-                <input type="number" min="1" required value={newRewardPoints} onChange={e => setNewRewardPoints(Math.max(1, Number(e.target.value)))} className="custom-input" />
-              </div>
-              <div>
-                <label className="custom-field-label">禮品描述 (選填)</label>
-                <input type="text" placeholder="簡短描述這項禮品..." value={newRewardDesc} onChange={e => setNewRewardDesc(e.target.value)} className="custom-input" />
-              </div>
-              <button type="submit" disabled={loading} className="custom-btn-primary" style={{ width: '100%', marginTop: '8px' }}>{loading ? '新增中...' : '確認新增'}</button>
-            </form>
+          <div>
+            <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px' }}>
+              <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>新增社團禮品</h3>
+              <form onSubmit={handleAddRewardSubmit}>
+                <div>
+                  <label className="custom-field-label">禮品名稱</label>
+                  <input type="text" required placeholder="例如 辯論社馬克杯" value={newRewardTitle} onChange={e => setNewRewardTitle(e.target.value)} className="custom-input" />
+                </div>
+                <div>
+                  <label className="custom-field-label">所需「論點」點數</label>
+                  <input type="number" min="1" required value={newRewardPoints} onChange={e => setNewRewardPoints(Math.max(1, Number(e.target.value)))} className="custom-input" />
+                </div>
+                <div>
+                  <label className="custom-field-label">禮品描述 (選填)</label>
+                  <input type="text" placeholder="簡短描述這項禮品..." value={newRewardDesc} onChange={e => setNewRewardDesc(e.target.value)} className="custom-input" />
+                </div>
+                <button type="submit" disabled={loading} className="custom-btn-primary" style={{ width: '100%', marginTop: '8px' }}>{loading ? '新增中...' : '確認新增'}</button>
+              </form>
+            </div>
+
+            {/* 💡 禮品管理清單：管理員在手機上可直接一鍵刪除禮品 */}
+            <h2 className="custom-h2" style={{ paddingLeft: '8px', fontSize: '18px', marginTop: '32px' }}>目前禮品清單 (可於手機直接刪除)</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {rewardsList.map((reward) => (
+                <div key={reward.id} className="custom-card" style={{ maxWidth: '100%', padding: '16px 20px', margin: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ textAlign: 'left', paddingRight: '8px' }}>
+                    <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#1E293B' }}>{reward.title}</div>
+                    <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>所需點數: {reward.points_required} 點</div>
+                  </div>
+                  <button 
+                    onClick={() => handleDeleteReward(reward.id)} 
+                    disabled={loading}
+                    className="custom-btn-logout"
+                    style={{ fontSize: '12px', padding: '4px 12px', color: '#EF4444', borderColor: '#EF4444' }}
+                  >
+                    刪除
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
