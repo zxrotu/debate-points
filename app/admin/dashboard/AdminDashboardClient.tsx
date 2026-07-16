@@ -10,20 +10,28 @@ interface AdminDashboardClientProps {
 export default function AdminDashboardClient({ adminName }: AdminDashboardClientProps) {
   const router = useRouter();
   
+  // 頁籤切換: 'scan' (掃描) / 'manual' (手動) / 'requests' (審核申請)
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'requests'>('scan');
+  
+  // 流程控制狀態
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   
+  // 當前選定社員
   const [student, setStudent] = useState<any>(null);
+  
+  // 加扣點參數
   const [pointsAction, setPointsAction] = useState<'add' | 'deduct'>('add');
   const [amount, setAmount] = useState<number>(5);
   const [reason, setReason] = useState('參與社課加點');
+  
+  // 線上兌換申請列表
   const [redeemRequests, setRedeemRequests] = useState<any[]>([]);
   
   const [manualUsername, setManualUsername] = useState('');
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
 
-  // 精準控制相機實體：當切換到非掃描分頁時，立即呼叫 .clear()，且元件會保持在 DOM 中被隱藏，徹底防範飄移 Bug
+  // 初始化相機
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
 
@@ -49,7 +57,7 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
           await handleFetchStudent({ qr_token: decodedText });
         },
         (error) => {
-          // 忽略掃描中的微小異常
+          // 忽略掃描異常
         }
       );
     }
@@ -67,13 +75,22 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
     }
   }, [activeTab]);
 
+  // 讀取審核清單：加上雙重防護機制，防範卡死，讀取完畢或出錯皆 100% 關閉 Loading
   const fetchRedeemRequests = async () => {
     setLoading(true);
-    const res = await fetch('/api/admin/redeem-requests');
-    const data = await res.json();
-    setLoading(false);
-    if (res.ok) {
-      setRedeemRequests(data.requests);
+    setMessage({ text: '', type: '' });
+    try {
+      const res = await fetch('/api/admin/redeem-requests');
+      if (!res.ok) {
+        throw new Error('伺服器連線失敗');
+      }
+      const data = await res.json();
+      setRedeemRequests(data.requests || []);
+    } catch (err) {
+      console.error(err);
+      setMessage({ text: '讀取兌換申請失敗，請稍後重試', type: 'error' });
+    } finally {
+      setLoading(false); // 確保不論成功失敗，100% 關閉載入中
     }
   };
 
@@ -98,6 +115,7 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
     }
   };
 
+  // 第三步：提交加扣點
   const handlePointsActionSubmit = async () => {
     setLoading(true);
     setMessage({ text: '', type: '' });
@@ -108,7 +126,9 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        student_id: student.id,
+        student_id: student.id,      // 💡 傳入新版學生 ID
+        username: student.username,  // 💡 同時傳入帳號進行多重防護備份
+        qr_token: student.qr_token,  // 💡 同時傳入條碼金鑰進行多重防護備份
         amount: finalAmount,
         reason: reason,
       }),
@@ -204,9 +224,9 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
         {/* 頁籤一與頁籤二的流程 */}
         {activeTab !== 'requests' && (
           <div>
+            {/* 步驟 1：掃描或搜尋 */}
             {step === 'scan_or_search' && (
               <div>
-                {/* 💡 掃描條碼區塊：始終保留在 DOM 中，但用 display 控制隱現，徹底根除 html5-qrcode 殘留與飄移 Bug */}
                 <div 
                   className="custom-card" 
                   style={{ 
@@ -221,7 +241,6 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
                   <div id="reader" style={{ borderRadius: '16px', overflow: 'hidden', border: '2px solid #CBD5E1' }}></div>
                 </div>
 
-                {/* 💡 手動輸入帳號區塊：始終保留在 DOM 中，但用 display 控制隱現。與相機模組絕對乾淨切割！ */}
                 <div 
                   className="custom-card" 
                   style={{ 
@@ -343,10 +362,23 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
         {/* 頁籤三：審核學生線上兌換申請 */}
         {activeTab === 'requests' && (
           <div>
-            <h2 className="custom-h2" style={{ paddingLeft: '8px' }}>待審核兌換要求</h2>
-            {loading && <p style={{ textAlign: 'center', color: '#64748B' }}>資料讀取中...</p>}
-            
-            {!loading && redeemRequests.length === 0 ? (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '0 4px' }}>
+              <h2 className="custom-h2" style={{ margin: 0, paddingLeft: '4px', fontSize: '18px' }}>待審核兌換要求</h2>
+              <button 
+                onClick={fetchRedeemRequests} 
+                disabled={loading}
+                className="custom-btn-logout"
+                style={{ fontSize: '12px', padding: '4px 12px' }}
+              >
+                {loading ? '讀取中...' : '刷新資料'}
+              </button>
+            </div>
+
+            {loading ? (
+              <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center' }}>
+                <p style={{ color: '#64748B', margin: 0 }}>資料讀取中...</p>
+              </div>
+            ) : redeemRequests.length === 0 ? (
               <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center' }}>
                 <p style={{ color: '#64748B', margin: 0 }}>目前沒有待處理的兌換要求</p>
               </div>

@@ -3,21 +3,24 @@ import { supabase } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
-    const { qr_token, username, amount, reason } = await request.json();
+    const { student_id, qr_token, username, amount, reason } = await request.json();
 
-    // 尋找目標社員 (支援 QR Code 或手動輸入帳號)
     let query = supabase.from('members').select('*');
-    if (qr_token) {
+    
+    // 💡 萬能防呆定位：無論前端傳來的是學生ID、學生的登入帳號、還是條碼金鑰，100% 都能成功對接
+    if (student_id) {
+      query = query.eq('id', student_id);
+    } else if (qr_token) {
       query = query.eq('qr_token', qr_token);
     } else if (username) {
       query = query.eq('username', username);
     } else {
-      return NextResponse.json({ error: '請提供 QR 碼代號或社員帳號' }, { status: 400 });
+      return NextResponse.json({ error: '請提供學生的 ID、帳號或條碼金鑰' }, { status: 400 });
     }
 
-    const { data: member, error } = await query.single();
-    if (error || !member) {
-      return NextResponse.json({ error: '找不到該社員' }, { status: 404 });
+    const { data: member, error: fetchError } = await query.single();
+    if (fetchError || !member) {
+      return NextResponse.json({ error: '找不到該社員，無法更新點數' }, { status: 404 });
     }
 
     const newPoints = member.points + amount;
