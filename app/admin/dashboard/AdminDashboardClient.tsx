@@ -11,22 +11,31 @@ interface AdminDashboardClientProps {
 export default function AdminDashboardClient({ adminName, initialRewards }: AdminDashboardClientProps) {
   const router = useRouter();
   
+  // 頁籤切換: 'scan' (掃描條碼) / 'manual' (輸入帳號) / 'students' (學員名單) / 'add_reward' (新增禮品)
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward'>('scan');
+  
+  // 流程控制狀態 (掃描與手動時適用)
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
+  
+  // 當前選定社員
   const [student, setStudent] = useState<any>(null);
   
-  const [adjustMode, setAdjustMode] = useState<'general' | 'redeem'>('general');
+  // 加扣點設定
+  const [adjustMode, setAdjustMode] = useState<'general' | 'redeem'>('general'); // 'general' 一般加扣點, 'redeem' 兌換禮品
   const [pointsAction, setPointsAction] = useState<'add' | 'deduct'>('add');
   const [amount, setAmount] = useState<number>(5);
   const [reason, setReason] = useState('參與社課加點');
   
+  // 禮品專屬加扣點設定
   const [rewardsList, setRewardsList] = useState<any[]>(initialRewards);
   const [selectedRewardId, setSelectedRewardId] = useState<number>(initialRewards[0]?.id || 0);
   const [redeemQuantity, setRedeemQuantity] = useState<number>(1);
 
+  // 學員名單功能資料
   const [allStudents, setAllStudents] = useState<any[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
 
+  // 新增禮品資料
   const [newRewardTitle, setNewRewardTitle] = useState('');
   const [newRewardPoints, setNewRewardPoints] = useState<number>(20);
   const [newRewardDesc, setNewRewardDesc] = useState('');
@@ -34,6 +43,7 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
 
+  // 初始化相機
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
 
@@ -43,9 +53,9 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
         { 
           fps: 10, 
           qrbox: { width: 250, height: 250 },
-          supportedScanTypes: [0],
+          supportedScanTypes: [0], // 僅限相機
           videoConstraints: {
-            facingMode: "environment"
+            facingMode: "environment" // 鎖死後鏡頭
           }
         },
         false
@@ -59,7 +69,7 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
           await handleFetchStudent({ qr_token: decodedText });
         },
         (error) => {
-          // 忽略
+          // 忽略掃描中的微小異常
         }
       );
     }
@@ -71,12 +81,14 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     };
   }, [step, activeTab]);
 
+  // 切換到「學員名單」頁籤時，獲取數據
   useEffect(() => {
     if (activeTab === 'students') {
       fetchStudents();
     }
   }, [activeTab]);
 
+  // 根據選擇的禮品與數量，自動計算扣點與填入事由
   useEffect(() => {
     if (adjustMode === 'redeem' && selectedRewardId) {
       const selectedReward = rewardsList.find(r => r.id === selectedRewardId);
@@ -88,6 +100,7 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     }
   }, [adjustMode, selectedRewardId, redeemQuantity, rewardsList]);
 
+  // 拉取全體學生資料
   const fetchStudents = async () => {
     setLoading(true);
     try {
@@ -103,6 +116,7 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     }
   };
 
+  // 第一步：讀取學生資訊
   const handleFetchStudent = async (payload: { qr_token?: string; username?: string }) => {
     setLoading(true);
     setMessage({ text: '', type: '' });
@@ -128,6 +142,7 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     }
   };
 
+  // 第三步：提交加扣點
   const handlePointsActionSubmit = async () => {
     setLoading(true);
     setMessage({ text: '', type: '' });
@@ -162,6 +177,7 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     }
   };
 
+  // 提交新增禮品
   const handleAddRewardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -194,6 +210,12 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     }
   };
 
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/');
+  };
+
+  // 過濾學生搜尋
   const filteredStudents = allStudents.filter(s => 
     s.name.includes(searchKeyword) || s.username.includes(searchKeyword)
   );
@@ -202,6 +224,7 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
       <div className="content-wrapper" style={{ maxWidth: '500px' }}>
         
+        {/* 標題欄 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
           <div style={{ flexGrow: 1 }}>
             <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>
@@ -220,7 +243,7 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
           </div>
         )}
 
-        {/* 💡 四頁籤精緻導覽 */}
+        {/* 四頁籤精緻導覽 */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
           <button 
             onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} 
@@ -329,7 +352,7 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
               </div>
             )}
 
-            {/* 步驟 3：設定加扣點與自動計算 */}
+            {/* 步驟 3 :加扣點與自動計算 */}
             {step === 'points_adjust' && student && (
               <div className="custom-card" style={{ maxWidth: '100%' }}>
                 <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '4px' }}>設定點數變更</h3>
