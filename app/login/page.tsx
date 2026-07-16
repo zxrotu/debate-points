@@ -41,21 +41,21 @@ function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-md border border-slate-200">
-      <h2 className="text-2xl font-bold text-center mb-6 text-slate-800">
+    <div className="w-full max-w-sm p-8 bg-white rounded-3xl shadow-sm border border-slate-200">
+      <h2 className="text-2xl font-bold text-center mb-8 text-slate-800">
         {isAdmin ? '管理員專屬登入' : '社員登入'}
       </h2>
-      {error && <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm mb-4 text-center">{error}</div>}
-      <form onSubmit={handleLogin} className="space-y-4">
+      {error && <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm mb-4 text-center">{error}</div>}
+      <form onSubmit={handleLogin} className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-slate-500 mb-1">帳號</label>
-          <input type="text" required value={username} onChange={e => setUsername(e.target.value)} className="w-full bg-[#FAF3E8] border border-slate-300 rounded-lg px-4 py-2 text-black focus:outline-none focus:ring-2 focus:ring-[#0097B2]" placeholder="請輸入帳號" />
+          <label className="block text-xs font-semibold text-slate-400 mb-1.5 px-1">帳號</label>
+          <input type="text" required value={username} onChange={e => setUsername(e.target.value)} className="w-full bg-[#FAF3E8] border border-slate-200 rounded-full px-5 py-2.5 text-black text-sm focus:outline-none focus:ring-2 focus:ring-[#0097B2]" placeholder="請輸入帳號" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-500 mb-1">密碼</label>
-          <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-[#FAF3E8] border border-slate-300 rounded-lg px-4 py-2 text-black focus:outline-none focus:ring-2 focus:ring-[#0097B2]" placeholder="請輸入密碼" />
+          <label className="block text-xs font-semibold text-slate-400 mb-1.5 px-1">密碼</label>
+          <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-[#FAF3E8] border border-slate-200 rounded-full px-5 py-2.5 text-black text-sm focus:outline-none focus:ring-2 focus:ring-[#0097B2]" placeholder="請輸入密碼" />
         </div>
-        <button type="submit" disabled={loading} className="w-full bg-[#0097B2] hover:bg-[#007A8F] text-white py-3 rounded-lg font-bold transition shadow-sm">
+        <button type="submit" disabled={loading} className="w-full bg-[#0097B2] hover:bg-[#007A8F] text-white py-3 rounded-full font-bold transition shadow-sm text-sm mt-2">
           {loading ? '登入中...' : '確認登入'}
         </button>
       </form>

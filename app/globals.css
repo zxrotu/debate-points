@@ -1,15 +1,26 @@
-@import url('https://cdn.jsdelivr.net/npm/@chinese-fonts/iansui/dist/Iansui/result.css');
+/* 1. 從台灣繁體開源字型 GitHub 官方 CDN 載入芫荽體實體字型 */
+@font-face {
+  font-family: 'Iansui';
+  src: url('https://cdn.jsdelivr.net/gh/ButTaiwan/iansui@main/fonts/ttf/Iansui-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background-color: #FAF3E8 !important;
-  color: #000000 !important;
-  font-family: 'Iansui', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+/* 2. 徹底移除 Next.js 的預設黑底設定，強制全網頁不分手機/電腦、不分深淺色模式，皆為米黃色背景與黑色文字 */
+* {
+  box-sizing: border-box;
 }
 
-/* 強制蓋過 Next.js 預設的深色/淺色背景設定，確保全站為統一溫暖米色 */
-html {
+html, body {
   background-color: #FAF3E8 !important;
+  color: #000000 !important;
+  font-family: 'Iansui', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif !important;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
 }
