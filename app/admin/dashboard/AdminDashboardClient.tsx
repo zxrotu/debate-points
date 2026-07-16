@@ -14,7 +14,7 @@ interface AdminDashboardClientProps {
 export default function AdminDashboardClient({ adminName, initialRewards, transactions }: AdminDashboardClientProps) {
   const router = useRouter();
   
-  // 頁籤切換: 'scan' / 'manual' / 'students' / 'add_reward' / 'batch_add' / 'group_add'
+  // 頁籤切換: 'scan' (掃描條碼) / 'manual' (輸入帳號) / 'students' (社員名冊) / 'add_reward' (新增獎品) / 'batch_add' (一次加點) / 'group_add' (掃碼加點)
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward' | 'batch_add' | 'group_add'>('scan');
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   const [student, setStudent] = useState<any>(null);
@@ -35,7 +35,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [newRewardPoints, setNewRewardPoints] = useState<number>(20);
   const [newRewardDesc, setNewRewardDesc] = useState('');
 
-  // 批次加點與集體掃碼狀態
+  // 一次加點與集體掃碼狀態
   const [batchAmount, setBatchAmount] = useState<number>(5);
   const [batchReason, setBatchReason] = useState('參與社課加點');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
@@ -51,6 +51,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
 
+  // 初始化個人掃描相機
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
     if (step === 'scan_or_search' && activeTab === 'scan') {
@@ -65,10 +66,14 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
     };
   }, [step, activeTab]);
 
+  // 載入社員名冊
   useEffect(() => {
-    if (activeTab === 'students') fetchStudents();
+    if (activeTab === 'students' || activeTab === 'batch_add') {
+      fetchStudents();
+    }
   }, [activeTab]);
 
+  // 集體掃碼倒數計時
   useEffect(() => {
     if (!expiresAt) return;
     const interval = setInterval(() => {
@@ -354,14 +359,14 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 💡 第一排按鈕：徹底獨立 div 容器，3個按鈕寬度均分，拒絕 wrap 亂排 */}
+        {/* 💡 第一排：獨立 div 容器，3個按鈕寬度完全等寬均分，100% 拒絕 wrap 亂排 */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
           <button onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>掃描條碼</button>
           <button onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>輸入帳號</button>
           <button onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>社員名冊</button>
         </div>
 
-        {/* 💡 第二排按鈕：徹底獨立 div 容器，3個按鈕寬度均分，與第一排完美對比對稱 */}
+        {/* 💡 第二排：獨立 div 容器，3個按鈕寬度完全等寬均分，與第一排完美垂直對稱 */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
           <button onClick={() => { setActiveTab('add_reward'); setMessage({ text: '', type: '' }); }} className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>新增獎品</button>
           <button onClick={() => { setActiveTab('batch_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'batch_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>一次加點</button>
@@ -626,12 +631,12 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 頁籤六：集體出席加點 QR Code 產生器 (內文改為「及時加點QR Code」) */}
+        {/* 💡 頁籤六：即時出席加點 QR Code 產生器 (內文已修正為「即時加點QR Code」) */}
         {activeTab === 'group_add' && (
           <div>
             {!claimId ? (
               <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px' }}>
-                <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>及時加點QR Code</h3>
+                <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>即時加點QR Code</h3>
                 <div>
                   <label className="custom-field-label">加點活動名稱</label>
                   <input type="text" value={groupTitle} onChange={e => setGroupTitle(e.target.value)} className="custom-input" />
@@ -645,13 +650,13 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                   <input type="number" min="1" value={groupDuration} onChange={e => setGroupDuration(Math.max(1, Number(e.target.value)))} className="custom-input" />
                 </div>
                 <button onClick={handleCreateGroupClaim} disabled={loading} className="custom-btn-primary" style={{ width: '100%', marginTop: '8px' }}>
-                  {loading ? '生成中...' : '產生集體加點安全碼'}
+                  {loading ? '生成中...' : '產生即時加點安全碼'}
                 </button>
               </div>
             ) : (
               <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center', marginBottom: '24px' }}>
                 <h3 className="custom-h2" style={{ fontSize: '20px', color: '#1E293B' }}>{groupTitle}</h3>
-                <p style={{ fontSize: '15px', color: '#0097B2', fontWeight: 'bold', margin: '4px 0 16px 0' }}>及時加點QR Code (獲得 {groupPoints} 個論點)</p>
+                <p style={{ fontSize: '15px', color: '#0097B2', fontWeight: 'bold', margin: '4px 0 16px 0' }}>即時加點QR Code (獲得 {groupPoints} 個論點)</p>
                 
                 <div style={{ fontSize: '14px', color: '#EF4444', fontWeight: 'bold', marginBottom: '20px', backgroundColor: '#FEF2F2', padding: '10px', borderRadius: '12px', border: '1px solid #FCA5A5' }}>
                   {countdownText}
