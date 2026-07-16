@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Html5QrcodeScanner } from 'html5-qrcode';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface AdminDashboardClientProps {
   adminName: string;
@@ -11,8 +12,8 @@ interface AdminDashboardClientProps {
 export default function AdminDashboardClient({ adminName, initialRewards }: AdminDashboardClientProps) {
   const router = useRouter();
   
-  // 頁籤切換: 'scan' / 'manual' / 'students' / 'add_reward' / 'batch_add'
-  const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward' | 'batch_add'>('scan');
+  // 頁籤切換: 'scan' / 'manual' / 'students' / 'add_reward' / 'group_add'
+  const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward' | 'group_add'>('scan');
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   const [student, setStudent] = useState<any>(null);
   
@@ -31,16 +32,19 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
   const [newRewardPoints, setNewRewardPoints] = useState<number>(20);
   const [newRewardDesc, setNewRewardDesc] = useState('');
 
-  // 批次加點專用狀態
-  const [batchAmount, setBatchAmount] = useState<number>(5);
-  const [batchReason, setBatchReason] = useState('參與社課加點');
-  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  // 💡 掃碼集體加點專用狀態
+  const [groupTitle, setGroupTitle] = useState('社課出席加點');
+  const [groupPoints, setGroupPoints] = useState<number>(5);
+  const [groupDuration, setGroupDuration] = useState<number>(5); // 預設 5 分鐘
+  const [claimId, setClaimId] = useState('');
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [countdownText, setCountdownText] = useState('');
 
   const [manualUsername, setManualUsername] = useState('');
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
 
-  // 初始化相機
+  // 初始化個人掃描相機
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
     if (step === 'scan_or_search' && activeTab === 'scan') {
@@ -55,12 +59,30 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     };
   }, [step, activeTab]);
 
-  // 切換到「學員名單」或「批次加點」時，撈取最新學員名冊
   useEffect(() => {
-    if (activeTab === 'students' || activeTab === 'batch_add') {
+    if (activeTab === 'students') {
       fetchStudents();
     }
   }, [activeTab]);
+
+  // 💡 集體掃碼倒數計時計
+  useEffect(() => {
+    if (!expiresAt) return;
+    const interval = setInterval(() => {
+      const diff = new Date(expiresAt).getTime() - Date.now();
+      if (diff <= 0) {
+        setCountdownText('此加點二維碼已過期失效');
+        setExpiresAt(null);
+        setClaimId('');
+        clearInterval(interval);
+      } else {
+        const mins = Math.floor(diff / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+        setCountdownText(`距離二維碼失效還有 ${mins} 分 ${secs} 秒`);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [expiresAt]);
 
   useEffect(() => {
     if (adjustMode === 'redeem' && selectedRewardId) {
@@ -129,22 +151,18 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     }
   };
 
-  // 提交批次加點
-  const handleBatchPointsSubmit = async () => {
-    if (selectedStudentIds.length === 0) {
-      alert('請至少勾選一位學員！');
-      return;
-    }
+  // 💡 發起掃碼集體加點活動
+  const handleCreateGroupClaim = async () => {
     setLoading(true);
     setMessage({ text: '', type: '' });
 
-    const res = await fetch('/api/admin/batch-points', {
+    const res = await fetch('/api/admin/create-claim', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        student_ids: selectedStudentIds,
-        amount: batchAmount,
-        reason: batchReason,
+        title: groupTitle,
+        points: groupPoints,
+        duration_minutes: groupDuration
       }),
     });
 
@@ -152,11 +170,11 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     setLoading(false);
 
     if (res.ok) {
-      setMessage({ text: `批次加點成功！已順利為 ${data.count} 位社員加上 ${batchAmount} 個論點！`, type: 'success' });
-      setSelectedStudentIds([]); // 清空勾選
-      fetchStudents(); // 重新整理點數名冊
+      setClaimId(data.claim.id);
+      setExpiresAt(data.claim.expires_at);
+      setCountdownText(`距離二維碼失效還有 ${groupDuration} 分 0 秒`);
     } else {
-      setMessage({ text: data.error || '批次加點失敗', type: 'error' });
+      setMessage({ text: data.error || '創建活動失敗', type: 'error' });
     }
   };
 
@@ -215,56 +233,33 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     router.push('/');
   };
 
-  // 學生多選切換
-  const handleToggleSelectStudent = (id: string) => {
-    setSelectedStudentIds((prev) => 
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
-  };
-
-  // 全選 / 取消全選
-  const handleToggleSelectAll = () => {
-    const currentFilteredIds = filteredStudents.map(s => s.id);
-    const allSelected = currentFilteredIds.every(id => selectedStudentIds.includes(id));
-
-    if (allSelected) {
-      // 取消勾選目前搜尋到的所有學生
-      setSelectedStudentIds((prev) => prev.filter(id => !currentFilteredIds.includes(id)));
-    } else {
-      // 勾選目前搜尋到的所有學生
-      setSelectedStudentIds((prev) => Array.from(new Set([...prev, ...currentFilteredIds])));
-    }
-  };
-
   const filteredStudents = allStudents.filter(s => s.name.includes(searchKeyword) || s.username.includes(searchKeyword));
 
   return (
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
       <div className="content-wrapper" style={{ maxWidth: '500px' }}>
         
-        {/* 標題欄 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
           <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>Hello! {adminName}</span>
           <button onClick={handleLogout} className="custom-btn-logout">登出</button>
         </header>
 
-        {/* 訊息提示 */}
         {message.text && (
           <div style={{ padding: '16px', borderRadius: '16px', border: '1px solid', marginBottom: '24px', textAlign: 'center', fontSize: '14px', backgroundColor: message.type === 'success' ? '#ECFDF5' : '#FEF2F2', borderColor: message.type === 'success' ? '#10B981' : '#F87171', color: message.type === 'success' ? '#047857' : '#B91C1C' }}>
             {message.text}
           </div>
         )}
 
-        {/* 💡 五頁籤精緻自適應導覽：排列整齊美觀 */}
+        {/* 💡 五頁籤整齊導覽：完全一行並排 */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
           <button onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px' }}>掃描條碼</button>
           <button onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px' }}>輸入帳號</button>
           <button onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px' }}>學員名單</button>
           <button onClick={() => { setActiveTab('add_reward'); setMessage({ text: '', type: '' }); }} className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}>新增禮品</button>
-          <button onClick={() => { setActiveTab('batch_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'batch_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}>批次加點</button>
+          <button onClick={() => { setActiveTab('group_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'group_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}>掃碼加點</button>
         </div>
 
-        {activeTab !== 'students' && activeTab !== 'add_reward' && activeTab !== 'batch_add' && (
+        {activeTab !== 'students' && activeTab !== 'add_reward' && activeTab !== 'group_add' && (
           <div>
             {step === 'scan_or_search' && (
               <div>
@@ -353,7 +348,6 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
                           <label className="custom-field-label">兌換數量</label>
                           <input type="number" min="1" value={redeemQuantity} onChange={e => setRedeemQuantity(Math.max(1, Number(e.target.value)))} className="custom-input" />
                         </div>
-                        
                         <div style={{ backgroundColor: '#FAF3E8', padding: '12px', borderRadius: '12px', border: '1px solid #CBD5E1', marginBottom: '24px', fontSize: '14px' }}>
                           <div style={{ marginBottom: '6px' }}>自動變更：<strong style={{ color: '#EF4444' }}>-{amount} 點</strong></div>
                           <div>自動事由：<strong>{reason}</strong></div>
@@ -401,148 +395,76 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
         )}
 
         {activeTab === 'add_reward' && (
-          <div>
-            <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px' }}>
-              <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>新增社團禮品</h3>
-              <form onSubmit={handleAddRewardSubmit}>
-                <div>
-                  <label className="custom-field-label">禮品名稱</label>
-                  <input type="text" required placeholder="例如 辯論社馬克杯" value={newRewardTitle} onChange={e => setNewRewardTitle(e.target.value)} className="custom-input" />
-                </div>
-                <div>
-                  <label className="custom-field-label">所需「論點」點數</label>
-                  <input type="number" min="1" required value={newRewardPoints} onChange={e => setNewRewardPoints(Math.max(1, Number(e.target.value)))} className="custom-input" />
-                </div>
-                <div>
-                  <label className="custom-field-label">禮品描述 (選填)</label>
-                  <input type="text" placeholder="簡短描述這項禮品..." value={newRewardDesc} onChange={e => setNewRewardDesc(e.target.value)} className="custom-input" />
-                </div>
-                <button type="submit" disabled={loading} className="custom-btn-primary" style={{ width: '100%', marginTop: '8px' }}>{loading ? '新增中...' : '確認新增'}</button>
-              </form>
-            </div>
-
-            <h2 className="custom-h2" style={{ paddingLeft: '8px', fontSize: '18px', marginTop: '32px' }}>目前禮品清單 (可於手機直接刪除)</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {rewardsList.map((reward) => (
-                <div key={reward.id} className="custom-card" style={{ maxWidth: '100%', padding: '16px 20px', margin: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ textAlign: 'left', paddingRight: '8px' }}>
-                    <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#1E293B' }}>{reward.title}</div>
-                    <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>所需點數: {reward.points_required} 點</div>
-                  </div>
-                  <button 
-                    onClick={() => handleDeleteReward(reward.id)} 
-                    disabled={loading}
-                    className="custom-btn-logout"
-                    style={{ fontSize: '12px', padding: '4px 12px', color: '#EF4444', borderColor: '#EF4444' }}
-                  >
-                    刪除
-                  </button>
-                </div>
-              ))}
-            </div>
+          <div className="custom-card" style={{ maxWidth: '100%' }}>
+            <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>新增社團禮品</h3>
+            <form onSubmit={handleAddRewardSubmit}>
+              <div>
+                <label className="custom-field-label">禮品名稱</label>
+                <input type="text" required placeholder="例如 辯論社馬克杯" value={newRewardTitle} onChange={e => setNewRewardTitle(e.target.value)} className="custom-input" />
+              </div>
+              <div>
+                <label className="custom-field-label">所需「論點」點數</label>
+                <input type="number" min="1" required value={newRewardPoints} onChange={e => setNewRewardPoints(Math.max(1, Number(e.target.value)))} className="custom-input" />
+              </div>
+              <div>
+                <label className="custom-field-label">禮品描述 (選填)</label>
+                <input type="text" placeholder="簡短描述這項禮品..." value={newRewardDesc} onChange={e => setNewRewardDesc(e.target.value)} className="custom-input" />
+              </div>
+              <button type="submit" disabled={loading} className="custom-btn-primary" style={{ width: '100%', marginTop: '8px' }}>{loading ? '新增中...' : '確認新增'}</button>
+            </form>
           </div>
         )}
 
-        {/* 💡 頁籤五：批次加點 UI */}
-        {activeTab === 'batch_add' && (
+        {/* 💡 頁籤五：集體掃碼加點產生器 UI */}
+        {activeTab === 'group_add' && (
           <div>
-            {/* 加點參數卡片 */}
-            <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px' }}>
-              <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>設定批次加點參數</h3>
-              <div>
-                <label className="custom-field-label">加點分數 (正數)</label>
-                <input 
-                  type="number" 
-                  min="1" 
-                  value={batchAmount} 
-                  onChange={e => setBatchAmount(Math.max(1, Number(e.target.value)))} 
-                  className="custom-input" 
-                />
-              </div>
-              <div>
-                <label className="custom-field-label">變更事由</label>
-                <input 
-                  type="text" 
-                  value={batchReason} 
-                  onChange={e => setBatchReason(e.target.value)} 
-                  className="custom-input" 
-                />
-              </div>
-              <button 
-                onClick={handleBatchPointsSubmit} 
-                disabled={loading || selectedStudentIds.length === 0}
-                className="custom-btn-primary" 
-                style={{ width: '100%', marginTop: '8px', backgroundColor: selectedStudentIds.length > 0 ? '#0097B2' : '#CBD5E1', cursor: selectedStudentIds.length > 0 ? 'pointer' : 'not-allowed', boxShadow: 'none' }}
-              >
-                {loading ? '批次提交中...' : `確認批次加點 (${selectedStudentIds.length} 人)`}
-              </button>
-            </div>
-
-            {/* 學員多選列表 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '0 4px' }}>
-              <h2 className="custom-h2" style={{ margin: 0, fontSize: '18px' }}>選擇學員名單</h2>
-              <button 
-                onClick={handleToggleSelectAll} 
-                className="custom-btn-logout"
-                style={{ fontSize: '12px', padding: '4px 12px' }}
-              >
-                {filteredStudents.every(id => selectedStudentIds.includes(id.id)) ? '取消全選' : '一鍵全選'}
-              </button>
-            </div>
-
-            {/* 搜尋過濾 */}
-            <div style={{ marginBottom: '16px' }}>
-              <input 
-                type="text" 
-                placeholder="搜尋學員姓名或帳號..." 
-                value={searchKeyword} 
-                onChange={e => setSearchKeyword(e.target.value)} 
-                className="custom-input" 
-                style={{ marginBottom: '0px' }}
-              />
-            </div>
-
-            {loading ? (
-              <p style={{ textAlign: 'center', color: '#64748B' }}>學員清單載入中...</p>
-            ) : filteredStudents.length === 0 ? (
-              <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center' }}>
-                <p style={{ color: '#64748B', margin: 0 }}>找不到符合條件的社員</p>
+            {!claimId ? (
+              /* 活動設定表單 */
+              <div className="custom-card" style={{ maxWidth: '100%' }}>
+                <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>產生集體出席加點</h3>
+                <div>
+                  <label className="custom-field-label">加點活動名稱</label>
+                  <input type="text" value={groupTitle} onChange={e => setGroupTitle(e.target.value)} className="custom-input" />
+                </div>
+                <div>
+                  <label className="custom-field-label">加點分數 (正數)</label>
+                  <input type="number" min="1" value={groupPoints} onChange={e => setGroupPoints(Math.max(1, Number(e.target.value)))} className="custom-input" />
+                </div>
+                <div>
+                  <label className="custom-field-label">限時領取分鐘數</label>
+                  <input type="number" min="1" value={groupDuration} onChange={e => setGroupDuration(Math.max(1, Number(e.target.value)))} className="custom-input" />
+                </div>
+                <button onClick={handleCreateGroupClaim} disabled={loading} className="custom-btn-primary" style={{ width: '100%', marginTop: '8px' }}>
+                  {loading ? '生成中...' : '產生集體加點安全碼'}
+                </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {filteredStudents.map((s) => {
-                  const isChecked = selectedStudentIds.includes(s.id);
-                  return (
-                    <div 
-                      key={s.id} 
-                      onClick={() => handleToggleSelectStudent(s.id)}
-                      className="custom-card" 
-                      style={{ 
-                        maxWidth: '100%', 
-                        padding: '16px 20px', 
-                        margin: 0, 
-                        display: 'flex', 
-                        alignItems: 'center',
-                        gap: '16px',
-                        cursor: 'pointer',
-                        border: isChecked ? '2px solid #0097B2' : '2px solid #CBD5E1',
-                        backgroundColor: isChecked ? '#F1FAFC' : '#FFFFFF'
-                      }}
-                    >
-                      {/* 自訂高對比大複選框 */}
-                      <input 
-                        type="checkbox" 
-                        checked={isChecked}
-                        onChange={() => {}} // 點擊卡片本體處理切換
-                        style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#0097B2' }}
-                      />
-                      <div style={{ textAlign: 'left', flexGrow: 1 }}>
-                        <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B' }}>{s.name}</div>
-                        <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>帳號: {s.username} | 目前: {s.points} 點</div>
-                      </div>
-                    </div>
-                  );
-                })}
+              /* 生成大 QR Code 與計時器 */
+              <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center' }}>
+                <h3 className="custom-h2" style={{ fontSize: '20px', color: '#1E293B' }}>{groupTitle}</h3>
+                <p style={{ fontSize: '15px', color: '#0097B2', fontWeight: 'bold', margin: '4px 0 16px 0' }}>掃描此碼獲得 {groupPoints} 個論點</p>
+                
+                {/* 倒數計時文字 */}
+                <div style={{ fontSize: '14px', color: '#EF4444', fontWeight: 'bold', marginBottom: '20px', backgroundColor: '#FEF2F2', padding: '10px', borderRadius: '12px', border: '1px solid #FCA5A5' }}>
+                  {countdownText}
+                </div>
+
+                {/* 生成 QR Code (動態抓取當下 Vercel 網址，免除本地/線上分開設定) */}
+                <div style={{ display: 'inline-block', backgroundColor: '#FFFFFF', padding: '16px', border: '1px solid #CBD5E1', borderRadius: '24px', boxShadow: '0 4px 6px rgba(0,0,0,0.03)', marginBottom: '24px' }}>
+                  <QRCodeSVG value={`${window.location.origin}/claim?id=${claimId}`} size={220} />
+                </div>
+                
+                <p style={{ fontSize: '12px', color: '#64748B', lineHeight: '1.5', marginBottom: '24px', padding: '0 8px' }}>
+                  請投影至大螢幕，社員可直接打開「手機自帶相機」掃描此條碼。限每位社員僅限掃描領取一次。
+                </p>
+
+                <button 
+                  onClick={() => { setClaimId(''); setExpiresAt(null); }} 
+                  className="custom-btn-secondary" 
+                  style={{ width: '100%' }}
+                >
+                  關閉 / 結束活動
+                </button>
               </div>
             )}
           </div>

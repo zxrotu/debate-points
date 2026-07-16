@@ -30,7 +30,11 @@ function LoginForm() {
     setLoading(false);
 
     if (res.ok) {
-      if (data.role === 'admin') {
+      // 💡 登入成功後，如果網址帶有 redirect 參數，則自動導回（例如導回領取點數頁面）
+      const redirectTo = searchParams.get('redirect');
+      if (redirectTo) {
+        router.push(redirectTo);
+      } else if (data.role === 'admin') {
         router.push('/admin/dashboard');
       } else {
         router.push('/member/dashboard');
