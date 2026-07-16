@@ -28,7 +28,7 @@ export default function Home() {
         <p className="custom-p" style={{ marginBottom: '32px' }}>
           思無界，辯無限。
           <br />
-          本系統得查看您的「論點」餘額或兌換獎品。
+          登入系統可查看您的論點與兌換獎品。
         </p>
 
         {/* 圓角登入按鈕區 */}
