@@ -4,20 +4,18 @@ export default function Home() {
   return (
     <div className="page-container">
       <div className="custom-card">
-        {/* 第一行大標題 */}
-        <h1 className="custom-h1" style={{ fontSize: '32px', marginBottom: '8px' }}>
-          PTDTDB 115
+        {/* 主標題 */}
+        <h1 className="custom-h1" style={{ fontSize: '28px', marginBottom: '8px' }}>
+          辯論社線上集點系統
         </h1>
-        {/* 第二行標題 */}
-        <h2 className="custom-h1" style={{ fontSize: '28px', marginTop: '0', marginBottom: '24px', fontWeight: 'bold', color: '#1E293B' }}>
-          辯論社集點系統
+        {/* 副標（字小一點，高對比灰色） */}
+        <h2 className="custom-h1" style={{ fontSize: '18px', fontWeight: 'normal', color: '#64748B', marginTop: '0', marginBottom: '24px' }}>
+          @ptdtdb_115
         </h2>
 
-        {/* 雙行說明文：字體與行高皆符合慎思設計指南 */}
+        {/* 內文 */}
         <p className="custom-p" style={{ marginBottom: '32px' }}>
-          思無界，辯無限。
-          <br />
-          登入系統查看您的「論點」餘額或兌換獎品。
+          登入系統查看您的論點餘額與兌換獎品。
         </p>
 
         {/* 圓角登入按鈕區 */}
