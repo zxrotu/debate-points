@@ -168,3 +168,12 @@ html, body {
 #reader__header_message {
   display: none !important;
 }
+/* 追加在原本的最下方：同時隱藏學生端與管理員端相機的所有不必要控制項 */
+#reader__camera_selection, 
+#reader__dashboard_section_swaplink,
+#reader__header_message,
+#reader-student__camera_selection, 
+#reader-student__dashboard_section_swaplink,
+#reader-student__header_message {
+  display: none !important;
+}

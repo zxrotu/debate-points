@@ -12,7 +12,7 @@ interface AdminDashboardClientProps {
 export default function AdminDashboardClient({ adminName, initialRewards }: AdminDashboardClientProps) {
   const router = useRouter();
   
-  // 頁籤切換: 'scan' / 'manual' / 'students' / 'add_reward' / 'group_add'
+  // 頁籤切換: 'scan' (掃描條碼) / 'manual' (輸入帳號) / 'students' (學員名冊) / 'add_reward' (新增禮品) / 'group_add' (掃碼加點)
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward' | 'group_add'>('scan');
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   const [student, setStudent] = useState<any>(null);
@@ -32,10 +32,10 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
   const [newRewardPoints, setNewRewardPoints] = useState<number>(20);
   const [newRewardDesc, setNewRewardDesc] = useState('');
 
-  // 💡 掃碼集體加點專用狀態
+  // 掃碼集體加點專用狀態
   const [groupTitle, setGroupTitle] = useState('社課出席加點');
   const [groupPoints, setGroupPoints] = useState<number>(5);
-  const [groupDuration, setGroupDuration] = useState<number>(5); // 預設 5 分鐘
+  const [groupDuration, setGroupDuration] = useState<number>(5);
   const [claimId, setClaimId] = useState('');
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [countdownText, setCountdownText] = useState('');
@@ -65,7 +65,6 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     }
   }, [activeTab]);
 
-  // 💡 集體掃碼倒數計時計
   useEffect(() => {
     if (!expiresAt) return;
     const interval = setInterval(() => {
@@ -151,7 +150,6 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     }
   };
 
-  // 💡 發起掃碼集體加點活動
   const handleCreateGroupClaim = async () => {
     setLoading(true);
     setMessage({ text: '', type: '' });
@@ -228,35 +226,32 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     }
   };
 
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/');
-  };
-
   const filteredStudents = allStudents.filter(s => s.name.includes(searchKeyword) || s.username.includes(searchKeyword));
 
   return (
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
       <div className="content-wrapper" style={{ maxWidth: '500px' }}>
         
+        {/* 標題欄 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
           <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>Hello! {adminName}</span>
           <button onClick={handleLogout} className="custom-btn-logout">登出</button>
         </header>
 
+        {/* 訊息提示 */}
         {message.text && (
           <div style={{ padding: '16px', borderRadius: '16px', border: '1px solid', marginBottom: '24px', textAlign: 'center', fontSize: '14px', backgroundColor: message.type === 'success' ? '#ECFDF5' : '#FEF2F2', borderColor: message.type === 'success' ? '#10B981' : '#F87171', color: message.type === 'success' ? '#047857' : '#B91C1C' }}>
             {message.text}
           </div>
         )}
 
-        {/* 💡 五頁籤整齊導覽：完全一行並排 */}
+        {/* 💡 五頁籤精緻導覽：完全一行並排，寬度自適應、絕不換行亂字 */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
-          <button onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px' }}>掃描條碼</button>
-          <button onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px' }}>輸入帳號</button>
-          <button onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px' }}>學員名單</button>
-          <button onClick={() => { setActiveTab('add_reward'); setMessage({ text: '', type: '' }); }} className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}>新增禮品</button>
-          <button onClick={() => { setActiveTab('group_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'group_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}>掃碼加點</button>
+          <button onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>掃描條碼</button>
+          <button onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>輸入帳號</button>
+          <button onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>學員名單</button>
+          <button onClick={() => { setActiveTab('add_reward'); setMessage({ text: '', type: '' }); }} className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px', whiteSpace: 'nowrap' }}>新增禮品</button>
+          <button onClick={() => { setActiveTab('group_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'group_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px', whiteSpace: 'nowrap' }}>掃碼加點</button>
         </div>
 
         {activeTab !== 'students' && activeTab !== 'add_reward' && activeTab !== 'group_add' && (
@@ -415,11 +410,10 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
           </div>
         )}
 
-        {/* 💡 頁籤五：集體掃碼加點產生器 UI */}
+        {/* 頁籤五：集體出席加點 QR Code 產生器 */}
         {activeTab === 'group_add' && (
           <div>
             {!claimId ? (
-              /* 活動設定表單 */
               <div className="custom-card" style={{ maxWidth: '100%' }}>
                 <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>產生集體出席加點</h3>
                 <div>
@@ -439,23 +433,20 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
                 </button>
               </div>
             ) : (
-              /* 生成大 QR Code 與計時器 */
               <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center' }}>
                 <h3 className="custom-h2" style={{ fontSize: '20px', color: '#1E293B' }}>{groupTitle}</h3>
                 <p style={{ fontSize: '15px', color: '#0097B2', fontWeight: 'bold', margin: '4px 0 16px 0' }}>掃描此碼獲得 {groupPoints} 個論點</p>
                 
-                {/* 倒數計時文字 */}
                 <div style={{ fontSize: '14px', color: '#EF4444', fontWeight: 'bold', marginBottom: '20px', backgroundColor: '#FEF2F2', padding: '10px', borderRadius: '12px', border: '1px solid #FCA5A5' }}>
                   {countdownText}
                 </div>
 
-                {/* 生成 QR Code (動態抓取當下 Vercel 網址，免除本地/線上分開設定) */}
                 <div style={{ display: 'inline-block', backgroundColor: '#FFFFFF', padding: '16px', border: '1px solid #CBD5E1', borderRadius: '24px', boxShadow: '0 4px 6px rgba(0,0,0,0.03)', marginBottom: '24px' }}>
                   <QRCodeSVG value={`${window.location.origin}/claim?id=${claimId}`} size={220} />
                 </div>
                 
                 <p style={{ fontSize: '12px', color: '#64748B', lineHeight: '1.5', marginBottom: '24px', padding: '0 8px' }}>
-                  請投影至大螢幕，社員可直接打開「手機自帶相機」掃描此條碼。限每位社員僅限掃描領取一次。
+                  請投影至大螢幕，社員可直接打開「網頁中的掃描」或「手機自帶相機」掃描此條碼。限每位社員僅限掃描領取一次。
                 </p>
 
                 <button 
