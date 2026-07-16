@@ -7,7 +7,6 @@ export async function POST(request: Request) {
 
     let query = supabase.from('members').select('*');
     
-    // 💡 萬能防呆定位：無論前端傳來的是學生ID、學生的登入帳號、還是條碼金鑰，100% 都能成功對接
     if (student_id) {
       query = query.eq('id', student_id);
     } else if (qr_token) {

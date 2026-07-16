@@ -10,7 +10,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 移除預設深色模式覆蓋，強制統一使用高對比米色背景與黑色文字 */
 * {
   box-sizing: border-box;
 }
@@ -23,11 +22,10 @@ html, body {
   padding: 0;
   min-height: 100vh;
   box-sizing: border-box;
-  font-size: 16px !important; /* 行動裝置正文字體至少 16px */
-  line-height: 1.6 !important; /* 行高為字體大小的 1.6 倍 */
+  font-size: 16px !important;
+  line-height: 1.6 !important;
 }
 
-/* 慎思設計指南高對比元件 */
 .page-container {
   display: flex !important;
   flex-direction: column !important;
@@ -40,7 +38,7 @@ html, body {
 }
 
 .content-wrapper {
-  max-width: 600px !important; /* 行寬限制：防止長句閱讀疲勞 */
+  max-width: 600px !important;
   width: 100% !important;
   margin: 0 auto !important;
   box-sizing: border-box !important;
@@ -49,18 +47,18 @@ html, body {
 .custom-card {
   background-color: #FFFFFF !important;
   color: #000000 !important;
-  border: 2px solid #CBD5E1 !important; /* 深灰色粗邊框保證高對比 */
+  border: 2px solid #CBD5E1 !important;
   border-radius: 24px !important;
   padding: 32px 24px !important;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05) !important;
   width: 100% !important;
   max-width: 400px !important;
-  margin: 0 auto !important;
-  box-sizing: border-box !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 .custom-h1 {
-  font-size: 32px !important; /* H1 階層：正文的 2 倍 */
+  font-size: 32px !important;
   font-weight: 800 !important;
   line-height: 1.4 !important;
   color: #1E293B !important;
@@ -70,7 +68,7 @@ html, body {
 }
 
 .custom-h2 {
-  font-size: 24px !important; /* H2 階層 */
+  font-size: 24px !important;
   font-weight: 700 !important;
   line-height: 1.4 !important;
   color: #1E293B !important;
@@ -98,24 +96,24 @@ html, body {
   width: 100% !important;
   background-color: #FFFFFF !important;
   color: #000000 !important;
-  border: 2px solid #94A3B8 !important; /* 高對比度粗邊框 */
+  border: 2px solid #94A3B8 !important;
   border-radius: 12px !important;
-  padding: 14px 18px !important; /* 防止內容太貼 */
+  padding: 14px 18px !important;
   font-size: 16px !important;
   line-height: 1.5 !important;
   box-sizing: border-box !important;
-  margin-bottom: 24px !important; /* 防止欄位黏在一起 */
+  margin-bottom: 24px !important;
 }
 
 .custom-btn-primary {
   display: block !important;
   width: 100% !important;
   background-color: #0097B2 !important;
-  color: #FFFFFF !important; /* 確保 100% 純白字，高對比 */
+  color: #FFFFFF !important;
   font-weight: bold !important;
   font-size: 16px !important;
   padding: 14px 24px !important;
-  border-radius: 9999px !important; /* 完美膠囊圓角 */
+  border-radius: 9999px !important;
   border: none !important;
   cursor: pointer !important;
   text-align: center !important;
@@ -136,11 +134,11 @@ html, body {
   font-weight: bold !important;
   font-size: 16px !important;
   padding: 14px 24px !important;
-  border-radius: 9999px !important; /* 完美膠囊圓角 */
+  border-radius: 9999px !important;
   border: 2px solid #0097B2 !important;
   cursor: pointer !important;
   text-align: center !important;
-  box-sizing: border-box !important;
+  box-decoration-break: clone;
   text-decoration: none !important;
 }
 
@@ -148,13 +146,12 @@ html, body {
   background-color: #F1FAFC !important;
 }
 
-/* 置右、精巧尺寸登出按鈕 */
 .custom-btn-logout {
   background-color: #FFFFFF !important;
   color: #0097B2 !important;
   font-weight: bold !important;
   font-size: 14px !important;
-  padding: 6px 14px !important; /* 尺寸適中 */
+  padding: 6px 14px !important;
   border-radius: 9999px !important;
   border: 2px solid #0097B2 !important;
   cursor: pointer !important;
@@ -166,7 +163,6 @@ html, body {
   background-color: #F1FAFC !important;
 }
 
-/* 強制鎖死後置鏡頭：隱藏 html5-qrcode 不必要的 UI 控制按鈕與下拉選單 */
 #reader__camera_selection, 
 #reader__dashboard_section_swaplink,
 #reader__header_message {

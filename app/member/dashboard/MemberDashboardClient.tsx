@@ -19,7 +19,6 @@ export default function MemberDashboardClient({ profile, rewards }: MemberDashbo
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
       <div className="content-wrapper">
         
-        {/* 標題欄：Hello! 林聖恩 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
           <div style={{ flexGrow: 1 }}>
             <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>
@@ -31,7 +30,7 @@ export default function MemberDashboardClient({ profile, rewards }: MemberDashbo
           </button>
         </header>
 
-        {/* 整合一體化大卡片 */}
+        {/* 整合一體化卡片 */}
         <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '32px', marginTop: '0px', textAlign: 'center', padding: '24px' }}>
           <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 4px 0' }}>我的「論點」餘額</p>
           <p style={{ fontSize: '36px', fontWeight: '900', color: '#0097B2', margin: '0 0 16px 0' }}>

@@ -10,10 +10,11 @@ interface AdminDashboardClientProps {
 
 export default function AdminDashboardClient({ adminName, initialRewards }: AdminDashboardClientProps) {
   const router = useRouter();
+  
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward'>('scan');
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
-  
   const [student, setStudent] = useState<any>(null);
+  
   const [adjustMode, setAdjustMode] = useState<'general' | 'redeem'>('general');
   const [pointsAction, setPointsAction] = useState<'add' | 'deduct'>('add');
   const [amount, setAmount] = useState<number>(5);
@@ -153,7 +154,7 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
       <div className="content-wrapper" style={{ maxWidth: '500px' }}>
         
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
-          <span style={{ fontSize: '22px', font textAnchor: 'bold', color: '#1E293B', fontWeight: 'bold' }}>Hello! {adminName}</span>
+          <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>Hello! {adminName}</span>
           <button onClick={handleLogout} className="custom-btn-logout">登出</button>
         </header>
 
@@ -163,7 +164,6 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
           </div>
         )}
 
-        {/* 四頁籤精緻導覽 */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
           <button onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}>掃描條碼</button>
           <button onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}>輸入帳號</button>
