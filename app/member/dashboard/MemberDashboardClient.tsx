@@ -104,7 +104,6 @@ export default function MemberDashboardClient({ profile, rewards, transactions }
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
       <div className="content-wrapper">
         
-        {/* 標題欄 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
           <div style={{ flexGrow: 1 }}>
             <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>
@@ -198,7 +197,7 @@ export default function MemberDashboardClient({ profile, rewards, transactions }
           </div>
         </div>
 
-        {/* 獎品清單 */}
+        {/* 獎品列表 */}
         <div>
           <h2 className="custom-h2" style={{ paddingLeft: '8px', fontSize: '18px', marginBottom: '12px' }}>獎品列表</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

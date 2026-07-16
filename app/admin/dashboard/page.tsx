@@ -32,7 +32,7 @@ export default async function AdminDashboardPage() {
     .select('*')
     .order('points_required', { ascending: true });
 
-  // 💡 伺服器端直出：撈取全體點數交易明細，並安全進行記憶體高效配對，避免 Supabase 跨表錯誤
+  // 伺服器端直出：撈取全體點數交易明細，並安全進行記憶體高效配對，避免 Supabase 跨表錯誤
   const { data: transactions } = await supabase
     .from('transactions')
     .select('*')
