@@ -21,7 +21,7 @@ export default function Home() {
 
         {/* 主標題 */}
         <h1 className="custom-h1" style={{ fontSize: '28px', marginBottom: '16px' }}>
-          辯論社線上集點系統
+          線上集點系統
         </h1>
 
         {/* 內文說明 */}
