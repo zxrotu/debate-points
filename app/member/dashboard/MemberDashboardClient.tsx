@@ -3,15 +3,18 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Telescope } from 'lucide-react'; // 💡 引入望遠鏡圖標
 
 interface MemberDashboardClientProps {
   profile: any;
   rewards: any[];
+  transactions: any[];
 }
 
-export default function MemberDashboardClient({ profile, rewards }: MemberDashboardClientProps) {
+export default function MemberDashboardClient({ profile, rewards, transactions }: MemberDashboardClientProps) {
   const router = useRouter();
   const [showScanner, setShowScanner] = useState(false);
+  const [showHistory, setShowHistory] = useState(false); // 💡 歷史紀錄開關
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
 
   const handleLogout = async () => {
@@ -19,7 +22,6 @@ export default function MemberDashboardClient({ profile, rewards }: MemberDashbo
     router.push('/');
   };
 
-  // 💡 學生端內建相機掃碼邏輯：鎖死後鏡頭，掃描成功自動解析 URL 獲取活動 ID 並加點
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
 
@@ -29,9 +31,9 @@ export default function MemberDashboardClient({ profile, rewards }: MemberDashbo
         { 
           fps: 10, 
           qrbox: { width: 250, height: 250 },
-          supportedScanTypes: [0], // 僅限鏡頭
+          supportedScanTypes: [0],
           videoConstraints: {
-            facingMode: "environment" // 鎖死後置主鏡頭
+            facingMode: "environment"
           }
         },
         false
@@ -44,7 +46,6 @@ export default function MemberDashboardClient({ profile, rewards }: MemberDashbo
           }
           setShowScanner(false);
 
-          // 防呆解析：支援直接掃描完整網址或純活動 ID
           let claimId = decodedText;
           if (decodedText.includes('?id=')) {
             const urlParts = decodedText.split('?id=');
@@ -66,7 +67,7 @@ export default function MemberDashboardClient({ profile, rewards }: MemberDashbo
                 text: `成功領取【${data.title}】的 ${data.points_added} 點！目前餘額：${data.new_points} 點`, 
                 type: 'success' 
               });
-              router.refresh(); // 即時更新大卡片餘額
+              router.refresh();
             } else {
               if (data.error === 'ALREADY_CLAIMED') {
                 setScanMessage({ text: `您先前已領取過【${data.title}】囉，請勿重複掃描`, type: 'error' });
@@ -78,9 +79,7 @@ export default function MemberDashboardClient({ profile, rewards }: MemberDashbo
             setScanMessage({ text: '網路連線異常，領取失敗', type: 'error' });
           }
         },
-        (error) => {
-          // 忽略掃描異常
-        }
+        (error) => {}
       );
     }
 
@@ -91,23 +90,55 @@ export default function MemberDashboardClient({ profile, rewards }: MemberDashbo
     };
   }, [showScanner]);
 
+  // 💡 安全字串切片日期格式化：100% 防範 Vercel 與手機時區不同造成的 Hydration 錯誤
+  const formatDate = (dateStr: string) => {
+    try {
+      const datePart = dateStr.substring(0, 10);
+      const timePart = dateStr.substring(11, 16);
+      return `${datePart} ${timePart}`;
+    } catch (err) {
+      return dateStr;
+    }
+  };
+
   return (
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
       <div className="content-wrapper">
         
-        {/* 標題欄：並排掃描與登出按鈕 */}
+        {/* 標題欄：並排望遠鏡、掃描、登出按鈕 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
           <div style={{ flexGrow: 1 }}>
             <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>
               Hello! {profile.name}
             </span>
           </div>
-          {/* 💡 掃描按鈕與登出按鈕緊密並排 */}
+          
+          {/* 按鈕緊密並排，望遠鏡置左 */}
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <button 
-              onClick={() => { setShowScanner(!showScanner); setScanMessage({ text: '', type: '' }); }} 
+              onClick={() => { setShowHistory(!showHistory); setShowScanner(false); setScanMessage({ text: '', type: '' }); }} 
               className="custom-btn-logout"
-              style={{ backgroundColor: '#0097B2', color: '#FFFFFF', borderColor: '#0097B2' }}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                padding: '8px',
+                backgroundColor: showHistory ? '#0097B2' : '#FFFFFF',
+                color: showHistory ? '#FFFFFF' : '#0097B2',
+                borderColor: '#0097B2'
+              }}
+              title="歷史紀錄"
+            >
+              <Telescope size={16} />
+            </button>
+            <button 
+              onClick={() => { setShowScanner(!showScanner); setShowHistory(false); setScanMessage({ text: '', type: '' }); }} 
+              className="custom-btn-logout"
+              style={{ 
+                backgroundColor: showScanner ? '#0097B2' : '#FFFFFF', 
+                color: showScanner ? '#FFFFFF' : '#0097B2', 
+                borderColor: '#0097B2' 
+              }}
             >
               {showScanner ? '關閉' : '掃描'}
             </button>
@@ -117,18 +148,41 @@ export default function MemberDashboardClient({ profile, rewards }: MemberDashbo
           </div>
         </header>
 
-        {/* 掃描反饋訊息 */}
         {scanMessage.text && (
           <div style={{ padding: '16px', borderRadius: '16px', border: '1px solid', marginBottom: '24px', textAlign: 'center', fontSize: '14px', backgroundColor: scanMessage.type === 'success' ? '#ECFDF5' : scanMessage.type === 'info' ? '#F1FAFC' : '#FEF2F2', borderColor: scanMessage.type === 'success' ? '#10B981' : scanMessage.type === 'info' ? '#0097B2' : '#F87171', color: scanMessage.type === 'success' ? '#047857' : scanMessage.type === 'info' ? '#0097B2' : '#B91C1C', fontWeight: 'bold' }}>
             {scanMessage.text}
           </div>
         )}
 
-        {/* 💡 學生端相機面板：點選「掃描」時在最上方流暢彈出，鎖死後鏡頭 */}
+        {/* 學生端相機面板 */}
         {showScanner && (
           <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center', marginBottom: '32px' }}>
             <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '16px' }}>請允許相機權限，對準大螢幕的加點 QR Code</p>
             <div id="reader-student" style={{ borderRadius: '16px', overflow: 'hidden', border: '2px solid #CBD5E1' }}></div>
+          </div>
+        )}
+
+        {/* 💡 學生端歷史紀錄卡片：點選望遠鏡時在上方流暢彈出 */}
+        {showHistory && (
+          <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '32px', padding: '24px' }}>
+            <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center', marginBottom: '16px' }}>論點異動歷史紀錄</h3>
+            {transactions.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#64748B', fontSize: '14px', margin: 0 }}>目前尚無任何論點異動紀錄</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '300px', overflowY: 'auto' }}>
+                {transactions.map((t) => (
+                  <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 4px', borderBottom: '1px solid #E2E8F0', fontSize: '14px' }}>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontWeight: 'bold', color: '#1E293B' }}>{t.reason}</div>
+                      <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>{formatDate(t.created_at)}</div>
+                    </div>
+                    <div style={{ fontWeight: 'bold', fontSize: '16px', color: t.amount > 0 ? '#10B981' : '#EF4444' }}>
+                      {t.amount > 0 ? `+${t.amount}` : t.amount}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -148,7 +202,7 @@ export default function MemberDashboardClient({ profile, rewards }: MemberDashbo
           </div>
         </div>
 
-        {/* 唯讀獎品清單 */}
+        {/* 獎品列表 */}
         <div>
           <h2 className="custom-h2" style={{ paddingLeft: '8px' }}>獎品列表</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

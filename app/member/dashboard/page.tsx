@@ -29,10 +29,18 @@ export default async function MemberDashboardPage() {
 
   const { data: rewards } = await supabase.from('rewards').select('*');
 
+  // 💡 安全獲取該學生自己的所有點數異動明細，按時間倒序排列 (最新鮮的在最上面)
+  const { data: transactions } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('member_id', payload.id)
+    .order('created_at', { ascending: false });
+
   return (
     <MemberDashboardClient 
       profile={profile} 
       rewards={rewards || []} 
+      transactions={transactions || []}
     />
   );
 }

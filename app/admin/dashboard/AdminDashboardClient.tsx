@@ -3,19 +3,21 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { QRCodeSVG } from 'qrcode.react';
+import { Telescope } from 'lucide-react'; // 💡 引入望遠鏡圖標
 
 interface AdminDashboardClientProps {
   adminName: string;
   initialRewards: any[];
+  transactions: any[];
 }
 
-export default function AdminDashboardClient({ adminName, initialRewards }: AdminDashboardClientProps) {
+export default function AdminDashboardClient({ adminName, initialRewards, transactions }: AdminDashboardClientProps) {
   const router = useRouter();
   
-  // 頁籤切換: 'scan' / 'manual' / 'students' / 'add_reward' / 'batch_add' / 'group_add'
-  const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward' | 'batch_add' | 'group_add'>('scan');
+  const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward' | 'group_add'>('scan');
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   const [student, setStudent] = useState<any>(null);
+  const [showHistory, setShowHistory] = useState(false); // 💡 歷史紀錄開關
   
   const [adjustMode, setAdjustMode] = useState<'general' | 'redeem'>('general');
   const [pointsAction, setPointsAction] = useState<'add' | 'deduct'>('add');
@@ -48,7 +50,7 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
 
-  // 初始化相機
+  // 初始化個人掃描相機
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
     if (step === 'scan_or_search' && activeTab === 'scan') {
@@ -63,14 +65,12 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     };
   }, [step, activeTab]);
 
-  // 載入學員名單
   useEffect(() => {
-    if (activeTab === 'students' || activeTab === 'batch_add') {
+    if (activeTab === 'students') {
       fetchStudents();
     }
   }, [activeTab]);
 
-  // 集體掃碼倒數計時計
   useEffect(() => {
     if (!expiresAt) return;
     const interval = setInterval(() => {
@@ -284,16 +284,48 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     }
   };
 
+  // 💡 安全字串切片日期格式化：100% 防範時區 Hydration 錯誤
+  const formatDate = (dateStr: string) => {
+    try {
+      const datePart = dateStr.substring(0, 10);
+      const timePart = dateStr.substring(11, 16);
+      return `${datePart} ${timePart}`;
+    } catch (err) {
+      return dateStr;
+    }
+  };
+
   const filteredStudents = allStudents.filter(s => s.name.includes(searchKeyword) || s.username.includes(searchKeyword));
 
   return (
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
       <div className="content-wrapper" style={{ maxWidth: '500px' }}>
         
-        {/* 標題欄 */}
+        {/* 標題欄：並排望遠鏡按鈕與登出按鈕 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
-          <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>Hello! {adminName}</span>
-          <button onClick={handleLogout} className="custom-btn-logout">登出</button>
+          <div style={{ flexGrow: 1 }}>
+            <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>Hello! {adminName}</span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {/* 💡 管理員望遠鏡按鈕 */}
+            <button 
+              onClick={() => setShowHistory(!showHistory)} 
+              className="custom-btn-logout"
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                padding: '8px',
+                backgroundColor: showHistory ? '#0097B2' : '#FFFFFF',
+                color: showHistory ? '#FFFFFF' : '#0097B2',
+                borderColor: '#0097B2'
+              }}
+              title="歷史紀錄"
+            >
+              <Telescope size={16} />
+            </button>
+            <button onClick={handleLogout} className="custom-btn-logout">登出</button>
+          </div>
         </header>
 
         {/* 訊息提示 */}
@@ -303,18 +335,39 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
           </div>
         )}
 
-        {/* 💡 第一排：3個按鈕均分並列，絕不換行 */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-          <button onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>掃描條碼</button>
-          <button onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>輸入帳號</button>
-          <button onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>學員名單</button>
-        </div>
+        {/* 💡 管理員歷史紀錄卡片：點選望遠鏡時在上方流暢彈出 */}
+        {showHistory && (
+          <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '32px', padding: '24px' }}>
+            <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center', marginBottom: '16px' }}>全體點數異動日誌</h3>
+            {transactions.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#64748B', fontSize: '14px', margin: 0 }}>資料庫目前尚無任何交易日誌</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto' }}>
+                {transactions.map((t) => (
+                  <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 4px', borderBottom: '1px solid #E2E8F0', fontSize: '13px' }}>
+                    <div style={{ textAlign: 'left', paddingRight: '8px' }}>
+                      <div style={{ fontWeight: 'bold', color: '#1E293B' }}>{t.student_name} ({t.student_username})</div>
+                      <div style={{ color: '#475569', fontSize: '12px', marginTop: '2px' }}>{t.reason}</div>
+                      <div style={{ fontSize: '10px', color: '#64748B', marginTop: '2px' }}>{formatDate(t.created_at)}</div>
+                    </div>
+                    <div style={{ fontWeight: 'bold', fontSize: '15px', color: t.amount > 0 ? '#10B981' : '#EF4444', whiteSpace: 'nowrap' }}>
+                      {t.amount > 0 ? `+${t.amount}` : t.amount}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* 💡 第二排：3個按鈕均分並列，與第一排完美對齊 */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
-          <button onClick={() => { setActiveTab('add_reward'); setMessage({ text: '', type: '' }); }} className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>新增禮品</button>
-          <button onClick={() => { setActiveTab('batch_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'batch_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>批次加點</button>
-          <button onClick={() => { setActiveTab('group_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'group_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>掃碼加點</button>
+        {/* 五頁籤導覽：排列整齊美觀 */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
+          <button onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>掃描條碼</button>
+          <button onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>輸入帳號</button>
+          <button onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>學員名單</button>
+          <button onClick={() => { setActiveTab('add_reward'); setMessage({ text: '', type: '' }); }} className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px', whiteSpace: 'nowrap' }}>新增禮品</button>
+          <button onClick={() => { setActiveTab('batch_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'batch_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px', whiteSpace: 'nowrap' }}>批次加點</button>
+          <button onClick={() => { setActiveTab('group_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'group_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 100%', padding: '10px 4px', fontSize: '13px', whiteSpace: 'nowrap' }}>掃碼加點</button>
         </div>
 
         {activeTab !== 'students' && activeTab !== 'add_reward' && activeTab !== 'batch_add' && activeTab !== 'group_add' && (
@@ -406,7 +459,6 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
                           <label className="custom-field-label">兌換數量</label>
                           <input type="number" min="1" value={redeemQuantity} onChange={e => setRedeemQuantity(Math.max(1, Number(e.target.value)))} className="custom-input" />
                         </div>
-                        
                         <div style={{ backgroundColor: '#FAF3E8', padding: '12px', borderRadius: '12px', border: '1px solid #CBD5E1', marginBottom: '24px', fontSize: '14px' }}>
                           <div style={{ marginBottom: '6px' }}>自動變更：<strong style={{ color: '#EF4444' }}>-{amount} 點</strong></div>
                           <div>自動事由：<strong>{reason}</strong></div>
