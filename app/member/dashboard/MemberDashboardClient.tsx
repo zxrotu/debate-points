@@ -1,56 +1,67 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 
 interface MemberDashboardClientProps {
   profile: any;
   rewards: any[];
+  pendingRewardIds: number[];
 }
 
-export default function MemberDashboardClient({ profile, rewards }: MemberDashboardClientProps) {
+export default function MemberDashboardClient({ profile, rewards, pendingRewardIds }: MemberDashboardClientProps) {
   const router = useRouter();
-  const [timeLeft, setTimeLeft] = useState(60);
-  const [dynamicQrValue, setDynamicQrValue] = useState('');
-
-  useEffect(() => {
-    const generateDynamicQR = () => {
-      const timeSlice = Math.floor(Date.now() / 60000); // 60秒
-      setDynamicQrValue(`${profile.qr_token}:${timeSlice}`);
-    };
-
-    generateDynamicQR();
-
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          generateDynamicQR();
-          return 60;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [profile.qr_token]);
+  const [loadingId, setLoadingId] = useState<number | null>(null);
+  const [successMsg, setSuccessMsg] = useState('');
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/');
   };
 
+  // 學生發起線上兌換申請
+  const handleRedeemRequest = async (rewardId: number) => {
+    setLoadingId(rewardId);
+    setSuccessMsg('');
+
+    const res = await fetch('/api/member/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reward_id: rewardId }),
+    });
+
+    const data = await res.json();
+    setLoadingId(null);
+
+    if (res.ok) {
+      setSuccessMsg('兌換申請已送出，請等待管理員核准');
+      router.refresh(); // 刷新頁面重新整理狀態
+    } else {
+      alert(data.error || '申請失敗');
+    }
+  };
+
   return (
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
       <div className="content-wrapper">
-        <header style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
+        
+        {/* 標題欄：學生問候語與置右登出按鈕 */}
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
           <div style={{ flexGrow: 1 }}>
-            <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, color: '#1E293B' }}>你好，{profile.name}</h1>
-            <p style={{ fontSize: '13px', color: '#64748B', margin: '4px 0 0 0' }}>歡迎回到辯論社論點系統</p>
+            <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B' }}>
+              學生:(您好!{profile.name}同學)
+            </span>
           </div>
-          <button onClick={handleLogout} className="custom-btn-secondary" style={{ width: 'auto', padding: '8px 16px', fontSize: '12px' }}>
+          <button onClick={handleLogout} className="custom-btn-logout">
             登出
           </button>
         </header>
+
+        {successMsg && (
+          <div style={{ padding: '12px', backgroundColor: '#ECFDF5', border: '1px solid #10B981', color: '#047857', borderRadius: '12px', fontSize: '14px', marginBottom: '16px', textAlign: 'center', fontWeight: 'bold' }}>
+            {successMsg}
+          </div>
+        )}
 
         {/* 餘額卡片 */}
         <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '20px' }}>
@@ -60,46 +71,59 @@ export default function MemberDashboardClient({ profile, rewards }: MemberDashbo
           </p>
         </div>
 
-        {/* 動態安全驗證碼 */}
+        {/* 靜態安全驗證碼 */}
         <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', textAlign: 'center' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B', margin: '0 0 4px 0' }}>出示此即時安全碼進行兌換</h3>
-          <p style={{ fontSize: '13px', color: '#0097B2', fontWeight: 'bold', margin: '0 0 16px 0' }}>條碼將在 {timeLeft} 秒後自動更新</p>
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B', margin: '0 0 12px 0' }}>出示此安全碼進行兌換</h3>
           
-          {/* 動態進度條 */}
-          <div style={{ width: '160px', height: '6px', backgroundColor: '#E2E8F0', borderRadius: '9999px', margin: '0 auto 16px auto', overflow: 'hidden' }}>
-            <div 
-              style={{ 
-                height: '100%', 
-                backgroundColor: '#0097B2', 
-                width: `${(timeLeft / 60) * 100}%`,
-                transition: 'width 1s linear'
-              }}
-            ></div>
-          </div>
-
           <div style={{ display: 'inline-block', backgroundColor: '#FFFFFF', padding: '12px', border: '1px solid #CBD5E1', borderRadius: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-            {dynamicQrValue && <QRCodeSVG value={dynamicQrValue} size={150} />}
+            <QRCodeSVG value={profile.qr_token} size={150} />
           </div>
-          <p style={{ fontSize: '11px', color: '#64748B', marginTop: '16px', fontWeight: '300' }}>動態安全防偽技術，截圖畫面無法進行掃描</p>
+          <p style={{ fontSize: '11px', color: '#64748B', marginTop: '16px', fontWeight: '300' }}>點數不可轉贈他人</p>
         </div>
 
-        {/* 獎品清單 */}
+        {/* 獎品清單與申請按鈕 */}
         <div>
           <h2 className="custom-h2" style={{ paddingLeft: '8px' }}>可兌換獎品</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {rewards.map(reward => (
-              <div key={reward.id} className="custom-card" style={{ maxWidth: '100%', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0 }}>
-                <div>
-                  <h4 style={{ fontSize: '15px', fontWeight: 'bold', margin: 0, color: '#1E293B' }}>{reward.title}</h4>
-                  <p style={{ fontSize: '11px', color: '#64748B', margin: '4px 0 0 0' }}>{reward.description}</p>
+            {rewards.map(reward => {
+              const isPending = pendingRewardIds.includes(reward.id);
+              const canAfford = profile.points >= reward.points_required;
+
+              return (
+                <div key={reward.id} className="custom-card" style={{ maxWidth: '100%', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0 }}>
+                  <div style={{ flexGrow: 1, paddingRight: '12px' }}>
+                    <h4 style={{ fontSize: '15px', fontWeight: 'bold', margin: 0, color: '#1E293B' }}>{reward.title}</h4>
+                    <p style={{ fontSize: '11px', color: '#64748B', margin: '4px 0 0 0' }}>{reward.description}</p>
+                    <span style={{ display: 'inline-block', marginTop: '8px', fontSize: '12px', fontWeight: 'bold', color: '#0097B2' }}>
+                      需要 {reward.points_required} 點
+                    </span>
+                  </div>
+                  <div>
+                    {isPending ? (
+                      <span style={{ fontSize: '12px', color: '#D97706', fontWeight: 'bold', backgroundColor: '#FEF3C7', padding: '8px 16px', borderRadius: '9999px' }}>
+                        審核中
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleRedeemRequest(reward.id)}
+                        disabled={!canAfford || loadingId === reward.id}
+                        className="custom-btn-primary"
+                        style={{ 
+                          width: 'auto', 
+                          padding: '8px 16px', 
+                          fontSize: '12px',
+                          backgroundColor: canAfford ? '#0097B2' : '#CBD5E1',
+                          cursor: canAfford ? 'pointer' : 'not-allowed',
+                          boxShadow: 'none'
+                        }}
+                      >
+                        {loadingId === reward.id ? '申請中...' : '申請兌換'}
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <span style={{ display: 'inline-block', padding: '4px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: 'bold', backgroundColor: profile.points >= reward.points_required ? '#ECFDF5' : '#FEF2F2', color: profile.points >= reward.points_required ? '#059669' : '#EF4444' }}>
-                    {reward.points_required} 點
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
