@@ -5,33 +5,35 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 
 interface AdminDashboardClientProps {
   adminName: string;
+  initialRewards: any[];
 }
 
-export default function AdminDashboardClient({ adminName }: AdminDashboardClientProps) {
+export default function AdminDashboardClient({ adminName, initialRewards }: AdminDashboardClientProps) {
   const router = useRouter();
   
-  // 頁籤切換: 'scan' (掃描) / 'manual' (手動) / 'requests' (審核申請)
-  const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'requests'>('scan');
-  
-  // 流程控制狀態
+  const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward'>('scan');
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
-  
-  // 當前選定社員
   const [student, setStudent] = useState<any>(null);
   
-  // 加扣點參數
+  const [adjustMode, setAdjustMode] = useState<'general' | 'redeem'>('general');
   const [pointsAction, setPointsAction] = useState<'add' | 'deduct'>('add');
   const [amount, setAmount] = useState<number>(5);
   const [reason, setReason] = useState('參與社課加點');
   
-  // 線上兌換申請列表
-  const [redeemRequests, setRedeemRequests] = useState<any[]>([]);
-  
-  const [manualUsername, setManualUsername] = useState('');
+  const [rewardsList, setRewardsList] = useState<any[]>(initialRewards);
+  const [selectedRewardId, setSelectedRewardId] = useState<number>(initialRewards[0]?.id || 0);
+  const [redeemQuantity, setRedeemQuantity] = useState<number>(1);
+
+  const [allStudents, setAllStudents] = useState<any[]>([]);
+  const [searchKeyword, setSearchKeyword] = useState('');
+
+  const [newRewardTitle, setNewRewardTitle] = useState('');
+  const [newRewardPoints, setNewRewardPoints] = useState<number>(20);
+  const [newRewardDesc, setNewRewardDesc] = useState('');
+
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
 
-  // 初始化相機
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
 
@@ -41,9 +43,9 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
         { 
           fps: 10, 
           qrbox: { width: 250, height: 250 },
-          supportedScanTypes: [0], // 僅限相機
+          supportedScanTypes: [0],
           videoConstraints: {
-            facingMode: "environment" // 鎖死後鏡頭
+            facingMode: "environment"
           }
         },
         false
@@ -57,7 +59,7 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
           await handleFetchStudent({ qr_token: decodedText });
         },
         (error) => {
-          // 忽略掃描異常
+          // 忽略
         }
       );
     }
@@ -70,27 +72,34 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
   }, [step, activeTab]);
 
   useEffect(() => {
-    if (activeTab === 'requests') {
-      fetchRedeemRequests();
+    if (activeTab === 'students') {
+      fetchStudents();
     }
   }, [activeTab]);
 
-  // 讀取審核清單：加上雙重防護機制，防範卡死，讀取完畢或出錯皆 100% 關閉 Loading
-  const fetchRedeemRequests = async () => {
-    setLoading(true);
-    setMessage({ text: '', type: '' });
-    try {
-      const res = await fetch('/api/admin/redeem-requests');
-      if (!res.ok) {
-        throw new Error('伺服器連線失敗');
+  useEffect(() => {
+    if (adjustMode === 'redeem' && selectedRewardId) {
+      const selectedReward = rewardsList.find(r => r.id === selectedRewardId);
+      if (selectedReward) {
+        setPointsAction('deduct');
+        setAmount(selectedReward.points_required * redeemQuantity);
+        setReason(`兌換禮品-${selectedReward.title}-${redeemQuantity}個`);
       }
+    }
+  }, [adjustMode, selectedRewardId, redeemQuantity, rewardsList]);
+
+  const fetchStudents = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/students');
       const data = await res.json();
-      setRedeemRequests(data.requests || []);
+      if (res.ok) {
+        setAllStudents(data.students || []);
+      }
     } catch (err) {
       console.error(err);
-      setMessage({ text: '讀取兌換申請失敗，請稍後重試', type: 'error' });
     } finally {
-      setLoading(false); // 確保不論成功失敗，100% 關閉載入中
+      setLoading(false);
     }
   };
 
@@ -110,12 +119,15 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
     if (res.ok) {
       setStudent(data.student);
       setStep('student_confirm');
+      setAdjustMode('general');
+      setPointsAction('add');
+      setAmount(5);
+      setReason('參與社課加點');
     } else {
       setMessage({ text: data.error || '找不到該社員', type: 'error' });
     }
   };
 
-  // 第三步：提交加扣點
   const handlePointsActionSubmit = async () => {
     setLoading(true);
     setMessage({ text: '', type: '' });
@@ -126,9 +138,9 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        student_id: student.id,      // 💡 傳入新版學生 ID
-        username: student.username,  // 💡 同時傳入帳號進行多重防護備份
-        qr_token: student.qr_token,  // 💡 同時傳入條碼金鑰進行多重防護備份
+        student_id: student.id,
+        username: student.username,
+        qr_token: student.qr_token,
         amount: finalAmount,
         reason: reason,
       }),
@@ -150,34 +162,46 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
     }
   };
 
-  const handleRedeemAudit = async (requestId: number, action: 'approve' | 'reject') => {
+  const handleAddRewardSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
-    const res = await fetch('/api/admin/redeem-requests', {
+    setMessage({ text: '', type: '' });
+
+    const res = await fetch('/api/admin/rewards', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ request_id: requestId, action }),
+      body: JSON.stringify({
+        title: newRewardTitle,
+        points_required: newRewardPoints,
+        description: newRewardDesc,
+      }),
     });
+
     const data = await res.json();
     setLoading(false);
 
     if (res.ok) {
-      setMessage({ text: data.message || '操作成功', type: 'success' });
-      fetchRedeemRequests();
+      setMessage({ text: `成功新增禮品: ${newRewardTitle}`, type: 'success' });
+      setRewardsList((prev) => [...prev, data.reward].sort((a, b) => a.points_required - b.points_required));
+      if (!selectedRewardId) {
+        setSelectedRewardId(data.reward.id);
+      }
+      setNewRewardTitle('');
+      setNewRewardPoints(20);
+      setNewRewardDesc('');
     } else {
-      setMessage({ text: data.error || '操作失敗', type: 'error' });
+      setMessage({ text: data.error || '新增禮品失敗', type: 'error' });
     }
   };
 
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/');
-  };
+  const filteredStudents = allStudents.filter(s => 
+    s.name.includes(searchKeyword) || s.username.includes(searchKeyword)
+  );
 
   return (
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
       <div className="content-wrapper" style={{ maxWidth: '500px' }}>
         
-        {/* 標題欄 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
           <div style={{ flexGrow: 1 }}>
             <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>
@@ -196,35 +220,40 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
           </div>
         )}
 
-        {/* 三分頁導覽 */}
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+        {/* 💡 四頁籤精緻導覽 */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
           <button 
             onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} 
             className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
-            style={{ flex: 1, padding: '10px 4px', fontSize: '13px' }}
+            style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}
           >
             掃描條碼
           </button>
           <button 
             onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} 
             className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
-            style={{ flex: 1, padding: '10px 4px', fontSize: '13px' }}
+            style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}
           >
             輸入帳號
           </button>
           <button 
-            onClick={() => { setActiveTab('requests'); setMessage({ text: '', type: '' }); }} 
-            className={activeTab === 'requests' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
-            style={{ flex: 1, padding: '10px 4px', fontSize: '13px' }}
+            onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} 
+            className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
+            style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}
           >
-            審核申請
+            學員名單
+          </button>
+          <button 
+            onClick={() => { setActiveTab('add_reward'); setMessage({ text: '', type: '' }); }} 
+            className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
+            style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px' }}
+          >
+            新增禮品
           </button>
         </div>
 
-        {/* 頁籤一與頁籤二的流程 */}
-        {activeTab !== 'requests' && (
+        {activeTab !== 'students' && activeTab !== 'add_reward' && (
           <div>
-            {/* 步驟 1：掃描或搜尋 */}
             {step === 'scan_or_search' && (
               <div>
                 <div 
@@ -262,7 +291,6 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
               </div>
             )}
 
-            {/* 步驟 2：確認社員資訊 */}
             {step === 'student_confirm' && student && (
               <div className="custom-card" style={{ maxWidth: '100%' }}>
                 <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>確認社員資訊</h3>
@@ -301,41 +329,100 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
               </div>
             )}
 
-            {/* 步驟 3：設定加扣點與提交 */}
+            {/* 步驟 3：設定加扣點與自動計算 */}
             {step === 'points_adjust' && student && (
               <div className="custom-card" style={{ maxWidth: '100%' }}>
                 <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '4px' }}>設定點數變更</h3>
-                <p className="custom-p" style={{ fontSize: '14px', marginBottom: '24px' }}>
+                <p className="custom-p" style={{ fontSize: '14px', marginBottom: '20px' }}>
                   對象: {student.name} (目前 {student.points} 點)
                 </p>
 
-                <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
                   <button 
-                    onClick={() => setPointsAction('add')} 
-                    className={pointsAction === 'add' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
-                    style={{ flex: 1, padding: '10px' }}
+                    onClick={() => { setAdjustMode('general'); setPointsAction('add'); setAmount(5); setReason('參與社課加點'); }} 
+                    className={adjustMode === 'general' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
+                    style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }}
                   >
-                    加點
+                    一般加扣點
                   </button>
                   <button 
-                    onClick={() => setPointsAction('deduct')} 
-                    className={pointsAction === 'deduct' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
-                    style={{ flex: 1, padding: '10px' }}
+                    onClick={() => { setAdjustMode('redeem'); if (rewardsList.length > 0) { setSelectedRewardId(rewardsList[0].id); } }} 
+                    className={adjustMode === 'redeem' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
+                    style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }}
                   >
-                    扣點
+                    兌換禮品
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {adjustMode === 'general' ? (
                   <div>
-                    <label className="custom-field-label">變更點數值 (正數)</label>
-                    <input type="number" min="1" value={amount} onChange={e => setAmount(Math.max(1, Number(e.target.value)))} className="custom-input" />
+                    <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+                      <button 
+                        onClick={() => setPointsAction('add')} 
+                        className={pointsAction === 'add' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
+                        style={{ flex: 1, padding: '10px' }}
+                      >
+                        加點
+                      </button>
+                      <button 
+                        onClick={() => setPointsAction('deduct')} 
+                        className={pointsAction === 'deduct' ? 'custom-btn-primary' : 'custom-btn-secondary'} 
+                        style={{ flex: 1, padding: '10px' }}
+                      >
+                        扣點
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div>
+                        <label className="custom-field-label">變更點數值 (正數)</label>
+                        <input type="number" min="1" value={amount} onChange={e => setAmount(Math.max(1, Number(e.target.value)))} className="custom-input" />
+                      </div>
+                      <div>
+                        <label className="custom-field-label">變更事由</label>
+                        <input type="text" value={reason} onChange={e => setReason(e.target.value)} className="custom-input" />
+                      </div>
+                    </div>
                   </div>
+                ) : (
                   <div>
-                    <label className="custom-field-label">變更事由</label>
-                    <input type="text" value={reason} onChange={e => setReason(e.target.value)} className="custom-input" />
+                    {rewardsList.length === 0 ? (
+                      <p style={{ textAlign: 'center', color: '#64748B', fontSize: '14px', marginBottom: '24px' }}>目前資料庫內尚無禮品，請先去「新增禮品」頁籤建立！</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div>
+                          <label className="custom-field-label">選擇兌換禮品</label>
+                          <select 
+                            value={selectedRewardId} 
+                            onChange={e => setSelectedRewardId(Number(e.target.value))}
+                            className="custom-input"
+                          >
+                            {rewardsList.map(r => (
+                              <option key={r.id} value={r.id}>
+                                {r.title} (扣除 {r.points_required} 點)
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="custom-field-label">兌換數量</label>
+                          <input 
+                            type="number" 
+                            min="1" 
+                            value={redeemQuantity} 
+                            onChange={e => setRedeemQuantity(Math.max(1, Number(e.target.value)))} 
+                            className="custom-input" 
+                          />
+                        </div>
+                        
+                        <div style={{ backgroundColor: '#FAF3E8', padding: '12px', borderRadius: '12px', border: '1px solid #CBD5E1', marginBottom: '24px', fontSize: '14px' }}>
+                          <div style={{ marginBottom: '6px' }}>自動變更：<strong style={{ color: '#EF4444' }}>-{amount} 點</strong></div>
+                          <div>自動事由：<strong>{reason}</strong></div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
 
                 <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
                   <button 
@@ -347,7 +434,7 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
                   </button>
                   <button 
                     onClick={handlePointsActionSubmit} 
-                    disabled={loading}
+                    disabled={loading || (adjustMode === 'redeem' && rewardsList.length === 0)}
                     className="custom-btn-primary" 
                     style={{ flex: 1 }}
                   >
@@ -359,78 +446,84 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
           </div>
         )}
 
-        {/* 頁籤三：審核學生線上兌換申請 */}
-        {activeTab === 'requests' && (
+        {activeTab === 'students' && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '0 4px' }}>
-              <h2 className="custom-h2" style={{ margin: 0, paddingLeft: '4px', fontSize: '18px' }}>待審核兌換要求</h2>
-              <button 
-                onClick={fetchRedeemRequests} 
-                disabled={loading}
-                className="custom-btn-logout"
-                style={{ fontSize: '12px', padding: '4px 12px' }}
-              >
-                {loading ? '讀取中...' : '刷新資料'}
-              </button>
+            <h2 className="custom-h2" style={{ paddingLeft: '8px' }}>社員點數名冊</h2>
+            <div style={{ marginBottom: '16px' }}>
+              <input 
+                type="text" 
+                placeholder="搜尋姓名或帳號..." 
+                value={searchKeyword} 
+                onChange={e => setSearchKeyword(e.target.value)} 
+                className="custom-input" 
+                style={{ marginBottom: '0px' }}
+              />
             </div>
 
             {loading ? (
+              <p style={{ textAlign: 'center', color: '#64748B' }}>名單加載中...</p>
+            ) : filteredStudents.length === 0 ? (
               <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center' }}>
-                <p style={{ color: '#64748B', margin: 0 }}>資料讀取中...</p>
-              </div>
-            ) : redeemRequests.length === 0 ? (
-              <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center' }}>
-                <p style={{ color: '#64748B', margin: 0 }}>目前沒有待處理的兌換要求</p>
+                <p style={{ color: '#64748B', margin: 0 }}>找不到符合條件的社員</p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {redeemRequests.map((req) => (
-                  <div key={req.id} className="custom-card" style={{ maxWidth: '100%', padding: '24px' }}>
-                    <div style={{ marginBottom: '16px' }}>
-                      <span style={{ fontSize: '12px', color: '#0097B2', fontWeight: 'bold' }}>申請社員</span>
-                      <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1E293B', marginTop: '2px' }}>
-                        {req.student_name} ({req.student_username})
-                      </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {filteredStudents.map((s) => (
+                  <div key={s.id} className="custom-card" style={{ maxWidth: '100%', padding: '16px 20px', margin: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B' }}>{s.name}</div>
+                      <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>帳號: {s.username}</div>
                     </div>
-                    <div style={{ marginBottom: '16px' }}>
-                      <span style={{ fontSize: '12px', color: '#64748B' }}>申請獎品</span>
-                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B', marginTop: '2px' }}>
-                        {req.reward_title}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#FAF3E8', padding: '12px', borderRadius: '12px', marginBottom: '20px', fontSize: '13px' }}>
-                      <div>所需點數: <strong>{req.points_required} 點</strong></div>
-                      <div>目前餘額: <strong>{req.student_points} 點</strong></div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '16px' }}>
-                      <button
-                        onClick={() => handleRedeemAudit(req.id, 'reject')}
-                        disabled={loading}
-                        className="custom-btn-secondary"
-                        style={{ flex: 1, padding: '10px' }}
-                      >
-                        拒絕
-                      </button>
-                      <button
-                        onClick={() => handleRedeemAudit(req.id, 'approve')}
-                        disabled={loading || req.student_points < req.points_required}
-                        className="custom-btn-primary"
-                        style={{ 
-                          flex: 1, 
-                          padding: '10px',
-                          backgroundColor: req.student_points >= req.points_required ? '#0097B2' : '#CBD5E1',
-                          cursor: req.student_points >= req.points_required ? 'pointer' : 'not-allowed',
-                          boxShadow: 'none'
-                        }}
-                      >
-                        核准扣點
-                      </button>
+                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#0097B2' }}>
+                      {s.points} <span style={{ fontSize: '12px', fontWeight: 'normal', color: '#475569' }}>點</span>
                     </div>
                   </div>
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'add_reward' && (
+          <div className="custom-card" style={{ maxWidth: '100%' }}>
+            <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>新增社團禮品</h3>
+            <form onSubmit={handleAddRewardSubmit}>
+              <div>
+                <label className="custom-field-label">禮品名稱</label>
+                <input 
+                  type="text" 
+                  required 
+                  placeholder="例如 辯論社馬克杯" 
+                  value={newRewardTitle} 
+                  onChange={e => setNewRewardTitle(e.target.value)} 
+                  className="custom-input" 
+                />
+              </div>
+              <div>
+                <label className="custom-field-label">所需「論點」點數</label>
+                <input 
+                  type="number" 
+                  min="1" 
+                  required 
+                  value={newRewardPoints} 
+                  onChange={e => setNewRewardPoints(Math.max(1, Number(e.target.value)))} 
+                  className="custom-input" 
+                />
+              </div>
+              <div>
+                <label className="custom-field-label">禮品描述 (選填)</label>
+                <input 
+                  type="text" 
+                  placeholder="簡短描述這項禮品..." 
+                  value={newRewardDesc} 
+                  onChange={e => setNewRewardDesc(e.target.value)} 
+                  className="custom-input" 
+                />
+              </div>
+              <button type="submit" disabled={loading} className="custom-btn-primary" style={{ width: '100%', marginTop: '8px' }}>
+                {loading ? '新增中...' : '確認新增'}
+              </button>
+            </form>
           </div>
         )}
 

@@ -17,7 +17,6 @@ export default async function AdminDashboardPage() {
     redirect('/login?role=admin');
   }
 
-  // 從資料庫安全獲取當前登入的管理員姓名
   const { data: profile, error } = await supabase
     .from('members')
     .select('name')
@@ -28,5 +27,10 @@ export default async function AdminDashboardPage() {
     redirect('/login?role=admin');
   }
 
-  return <AdminDashboardClient adminName={profile.name} />;
+  const { data: rewards } = await supabase
+    .from('rewards')
+    .select('*')
+    .order('points_required', { ascending: true });
+
+  return <AdminDashboardClient adminName={profile.name} initialRewards={rewards || []} />;
 }

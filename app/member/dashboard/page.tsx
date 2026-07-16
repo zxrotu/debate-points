@@ -17,7 +17,6 @@ export default async function MemberDashboardPage() {
     redirect('/login?role=member');
   }
 
-  // 撈取學生最新個人資訊
   const { data: profile, error } = await supabase
     .from('members')
     .select('*')
@@ -28,23 +27,12 @@ export default async function MemberDashboardPage() {
     redirect('/login?role=member');
   }
 
-  // 取得獎品清單
   const { data: rewards } = await supabase.from('rewards').select('*');
-
-  // 取得學生自己正在審核中（pending）的兌換申請
-  const { data: activeRequests } = await supabase
-    .from('redemptions')
-    .select('reward_id')
-    .eq('member_id', payload.id)
-    .eq('status', 'pending');
-
-  const pendingRewardIds = activeRequests ? activeRequests.map((r: any) => r.reward_id) : [];
 
   return (
     <MemberDashboardClient 
       profile={profile} 
       rewards={rewards || []} 
-      pendingRewardIds={pendingRewardIds} 
     />
   );
 }
