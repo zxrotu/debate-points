@@ -262,7 +262,6 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
     }
   };
 
-  // 💡 已將登出函數完全定義在組件內部，100% 解決 Cannot find name 錯誤
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/');
@@ -304,14 +303,18 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
           </div>
         )}
 
-        {/* 💡 五頁籤整齊導覽：完全並排、不亂字、自適應排列 */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
-          <button onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>掃描條碼</button>
-          <button onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>輸入帳號</button>
-          <button onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 30%', padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>學員名單</button>
-          <button onClick={() => { setActiveTab('add_reward'); setMessage({ text: '', type: '' }); }} className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px', whiteSpace: 'nowrap' }}>新增禮品</button>
-          <button onClick={() => { setActiveTab('batch_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'batch_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 45%', padding: '10px 4px', fontSize: '13px', whiteSpace: 'nowrap' }}>批次加點</button>
-          <button onClick={() => { setActiveTab('group_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'group_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: '1 1 100%', padding: '10px 4px', fontSize: '13px', whiteSpace: 'nowrap' }}>掃碼加點</button>
+        {/* 💡 第一排：3個按鈕均分並列，絕不換行 */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+          <button onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>掃描條碼</button>
+          <button onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>輸入帳號</button>
+          <button onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>學員名單</button>
+        </div>
+
+        {/* 💡 第二排：3個按鈕均分並列，與第一排完美對齊 */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+          <button onClick={() => { setActiveTab('add_reward'); setMessage({ text: '', type: '' }); }} className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>新增禮品</button>
+          <button onClick={() => { setActiveTab('batch_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'batch_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>批次加點</button>
+          <button onClick={() => { setActiveTab('group_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'group_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '13px', whiteSpace: 'nowrap' }}>掃碼加點</button>
         </div>
 
         {activeTab !== 'students' && activeTab !== 'add_reward' && activeTab !== 'batch_add' && activeTab !== 'group_add' && (
@@ -403,6 +406,7 @@ export default function AdminDashboardClient({ adminName, initialRewards }: Admi
                           <label className="custom-field-label">兌換數量</label>
                           <input type="number" min="1" value={redeemQuantity} onChange={e => setRedeemQuantity(Math.max(1, Number(e.target.value)))} className="custom-input" />
                         </div>
+                        
                         <div style={{ backgroundColor: '#FAF3E8', padding: '12px', borderRadius: '12px', border: '1px solid #CBD5E1', marginBottom: '24px', fontSize: '14px' }}>
                           <div style={{ marginBottom: '6px' }}>自動變更：<strong style={{ color: '#EF4444' }}>-{amount} 點</strong></div>
                           <div>自動事由：<strong>{reason}</strong></div>
