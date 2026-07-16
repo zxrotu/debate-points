@@ -3,23 +3,36 @@ import Link from 'next/link';
 export default function Home() {
   return (
     <div className="page-container">
-      <div className="custom-card">
+      <div className="custom-card" style={{ textAlign: 'center' }}>
+        
+        {/* 1. 社團 Logo：寬度設定為 100px 居中置頂 */}
+        <img 
+          src="/logo.png" 
+          alt="辯論社 Logo" 
+          style={{ 
+            width: '100px', 
+            height: 'auto', 
+            marginBottom: '20px', 
+            display: 'block', 
+            marginLeft: 'auto', 
+            marginRight: 'auto' 
+          }} 
+        />
+
         {/* 主標題 */}
-        <h1 className="custom-h1" style={{ fontSize: '28px', marginBottom: '8px' }}>
+        <h1 className="custom-h1" style={{ fontSize: '28px', marginBottom: '16px' }}>
           辯論社線上集點系統
         </h1>
-        {/* 副標（字小一點，高對比灰色） */}
-        <h2 className="custom-h1" style={{ fontSize: '18px', fontWeight: 'normal', color: '#64748B', marginTop: '0', marginBottom: '24px' }}>
-          @ptdtdb_115
-        </h2>
 
-        {/* 內文 */}
+        {/* 內文說明 */}
         <p className="custom-p" style={{ marginBottom: '32px' }}>
-          登入系統查看您的論點餘額與兌換獎品。
+          思無界，辯無限。
+          <br />
+          本系統得查看您的「論點」餘額或兌換獎品。
         </p>
 
         {/* 圓角登入按鈕區 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
           <Link href="/login?role=member" className="custom-btn-primary">
             社員登入
           </Link>
@@ -27,6 +40,12 @@ export default function Home() {
             管理員登入
           </Link>
         </div>
+
+        {/* 2. 副標帳號：改放到按鈕下方，字體縮小為 16px 與內文一致 */}
+        <div style={{ fontSize: '16px', color: '#64748B', marginTop: '16px' }}>
+          @ptdtdb_115
+        </div>
+
       </div>
     </div>
   );

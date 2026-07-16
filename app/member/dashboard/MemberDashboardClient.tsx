@@ -44,7 +44,7 @@ export default function MemberDashboardClient({ profile, rewards, pendingRewardI
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
       <div className="content-wrapper">
         
-        {/* 標題欄：放大至 22px 粗體，改為 Hello! 某某某 格式 */}
+        {/* 標題欄 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
           <div style={{ flexGrow: 1 }}>
             <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>
@@ -62,8 +62,8 @@ export default function MemberDashboardClient({ profile, rewards, pendingRewardI
           </div>
         )}
 
-        {/* 餘額卡片：內部間距縮小，字體改為 36px，下方間距拉大至 32px 拒絕黏貼 */}
-        <div className="custom-card" style={{ maxWidth: '100%', padding: '16px 20px', marginBottom: '32px' }}>
+        {/* 餘額卡片：內部間距縮小，強制設定 margin-bottom: 32px 確保絕對分開 */}
+        <div className="custom-card" style={{ maxWidth: '100%', padding: '16px 20px', marginBottom: '32px', marginTop: '0px' }}>
           <p style={{ fontSize: '13px', color: '#64748B', textAlign: 'center', margin: '0 0 4px 0' }}>我的「論點」餘額</p>
           <p style={{ fontSize: '36px', fontWeight: '900', color: '#0097B2', textAlign: 'center', margin: 0 }}>
             {profile.points} <span style={{ fontSize: '15px', fontWeight: 'normal', color: '#475569' }}>點</span>
@@ -71,7 +71,7 @@ export default function MemberDashboardClient({ profile, rewards, pendingRewardI
         </div>
 
         {/* 條碼區塊 */}
-        <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', textAlign: 'center' }}>
+        <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '32px', marginTop: '0px', textAlign: 'center' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B', margin: '0 0 12px 0' }}>出示此安全碼進行兌換</h3>
           
           <div style={{ display: 'inline-block', backgroundColor: '#FFFFFF', padding: '12px', border: '1px solid #CBD5E1', borderRadius: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>

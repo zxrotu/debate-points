@@ -10,28 +10,20 @@ interface AdminDashboardClientProps {
 export default function AdminDashboardClient({ adminName }: AdminDashboardClientProps) {
   const router = useRouter();
   
-  // 頁籤切換: 'scan' (掃描) / 'manual' (手動) / 'requests' (審核申請)
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'requests'>('scan');
-  
-  // 流程控制狀態
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   
-  // 當前選定社員
   const [student, setStudent] = useState<any>(null);
-  
-  // 加扣點參數
   const [pointsAction, setPointsAction] = useState<'add' | 'deduct'>('add');
   const [amount, setAmount] = useState<number>(5);
   const [reason, setReason] = useState('參與社課加點');
-  
-  // 線上兌換申請列表
   const [redeemRequests, setRedeemRequests] = useState<any[]>([]);
   
   const [manualUsername, setManualUsername] = useState('');
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
 
-  // 精準控制：唯有在「掃描頁籤且在第一步」時，才進行相機渲染；其餘時間 100% 釋放鏡頭與 DOM 元件
+  // 精準控制相機實體：當切換到非掃描分頁時，立即呼叫 .clear()，且元件會保持在 DOM 中被隱藏，徹底防範飄移 Bug
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
 
@@ -57,12 +49,11 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
           await handleFetchStudent({ qr_token: decodedText });
         },
         (error) => {
-          // 忽略掃描異常
+          // 忽略掃描中的微小異常
         }
       );
     }
 
-    // 清除機制：確保切換到「輸入帳號」或「審核申請」時，相機完全關閉、釋放與不留任何 UI 殘留
     return () => {
       if (scanner) {
         scanner.clear().catch(err => console.error("Scanner clear error", err));
@@ -70,7 +61,6 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
     };
   }, [step, activeTab]);
 
-  // 切換到「審核申請」頁籤時，向後端獲取申請數據
   useEffect(() => {
     if (activeTab === 'requests') {
       fetchRedeemRequests();
@@ -87,7 +77,6 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
     }
   };
 
-  // 第一步：讀取學生資訊
   const handleFetchStudent = async (payload: { qr_token?: string; username?: string }) => {
     setLoading(true);
     setMessage({ text: '', type: '' });
@@ -109,7 +98,6 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
     }
   };
 
-  // 第三步：提交加扣點
   const handlePointsActionSubmit = async () => {
     setLoading(true);
     setMessage({ text: '', type: '' });
@@ -142,7 +130,6 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
     }
   };
 
-  // 審核線上兌換申請：核准或拒絕
   const handleRedeemAudit = async (requestId: number, action: 'approve' | 'reject') => {
     setLoading(true);
     const res = await fetch('/api/admin/redeem-requests', {
@@ -155,7 +142,7 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
 
     if (res.ok) {
       setMessage({ text: data.message || '操作成功', type: 'success' });
-      fetchRedeemRequests(); // 刷新申請清單
+      fetchRedeemRequests();
     } else {
       setMessage({ text: data.error || '操作失敗', type: 'error' });
     }
@@ -170,7 +157,7 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
       <div className="content-wrapper" style={{ maxWidth: '500px' }}>
         
-        {/* 標題欄：放大至 22px 粗體，改為 Hello! 某某某 格式 */}
+        {/* 標題欄 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
           <div style={{ flexGrow: 1 }}>
             <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>
@@ -189,7 +176,7 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
           </div>
         )}
 
-        {/* 三分頁導覽：按鈕改為 4字整齊一行字，拉開 12px 間距 */}
+        {/* 三分頁導覽 */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
           <button 
             onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} 
@@ -217,27 +204,42 @@ export default function AdminDashboardClient({ adminName }: AdminDashboardClient
         {/* 頁籤一與頁籤二的流程 */}
         {activeTab !== 'requests' && (
           <div>
-            {/* 步驟 1：掃描或搜尋 */}
             {step === 'scan_or_search' && (
               <div>
-                {activeTab === 'scan' ? (
-                  <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center' }}>
-                    <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '16px' }}>請允許相機權限，將社員 QR Code 放置於鏡頭前</p>
-                    <div id="reader" style={{ borderRadius: '16px', overflow: 'hidden', border: '2px solid #CBD5E1' }}></div>
+                {/* 💡 掃描條碼區塊：始終保留在 DOM 中，但用 display 控制隱現，徹底根除 html5-qrcode 殘留與飄移 Bug */}
+                <div 
+                  className="custom-card" 
+                  style={{ 
+                    maxWidth: '100%', 
+                    textAlign: 'center', 
+                    display: activeTab === 'scan' ? 'block' : 'none',
+                    marginTop: '0px',
+                    marginBottom: '24px'
+                  }}
+                >
+                  <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '16px' }}>請允許相機權限，將社員 QR Code 放置於鏡頭前</p>
+                  <div id="reader" style={{ borderRadius: '16px', overflow: 'hidden', border: '2px solid #CBD5E1' }}></div>
+                </div>
+
+                {/* 💡 手動輸入帳號區塊：始終保留在 DOM 中，但用 display 控制隱現。與相機模組絕對乾淨切割！ */}
+                <div 
+                  className="custom-card" 
+                  style={{ 
+                    maxWidth: '100%', 
+                    display: activeTab === 'manual' ? 'block' : 'none',
+                    marginTop: '0px',
+                    marginBottom: '24px'
+                  }}
+                >
+                  <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center' }}>手動查詢社員</h3>
+                  <div>
+                    <label className="custom-field-label">社員登入帳號 (帳號)</label>
+                    <input type="text" placeholder="例如 123" value={manualUsername} onChange={e => setManualUsername(e.target.value)} className="custom-input" />
+                    <button onClick={() => handleFetchStudent({ username: manualUsername })} disabled={loading || !manualUsername} className="custom-btn-primary" style={{ width: '100%' }}>
+                      {loading ? '查詢中...' : '查詢社員資料'}
+                    </button>
                   </div>
-                ) : (
-                  // 💡 輸入帳號區塊：100% 卸載相機，保證絕對乾淨，無任何 QR Code 掃描按鈕或雜物
-                  <div className="custom-card" style={{ maxWidth: '100%' }}>
-                    <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center' }}>手動查詢社員</h3>
-                    <div>
-                      <label className="custom-field-label">社員登入帳號 (帳號)</label>
-                      <input type="text" placeholder="例如 123" value={manualUsername} onChange={e => setManualUsername(e.target.value)} className="custom-input" />
-                      <button onClick={() => handleFetchStudent({ username: manualUsername })} disabled={loading || !manualUsername} className="custom-btn-primary" style={{ width: '100%' }}>
-                        {loading ? '查詢中...' : '查詢社員資料'}
-                      </button>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             )}
 
