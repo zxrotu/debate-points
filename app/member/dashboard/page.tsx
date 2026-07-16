@@ -5,7 +5,8 @@ import { supabase } from '@/lib/supabase';
 import MemberDashboardClient from './MemberDashboardClient';
 
 export default async function MemberDashboardPage() {
-  const cookieStore = cookies();
+  // 💡 最新版 Next.js 必須加上 await
+  const cookieStore = await cookies(); 
   const token = cookieStore.get('session_token')?.value;
 
   if (!token) {
