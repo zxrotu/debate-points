@@ -35,7 +35,7 @@ export default async function MemberDashboardPage() {
     .eq('member_id', payload.id)
     .order('created_at', { ascending: false });
 
-  // 💡 防禦性容錯查詢：即使資料庫沒建 announcements 表，也絕對不崩潰網頁！
+  // 💡 防禦性容錯查詢：即使資料庫沒建 announcements 表也絕對不崩潰
   let announcement = '';
   try {
     const { data: annData, error: annError } = await supabase
@@ -48,7 +48,7 @@ export default async function MemberDashboardPage() {
       announcement = annData.content || '';
     }
   } catch (err) {
-    console.error("Announcements table not ready yet:", err);
+    console.error(err);
   }
 
   return (

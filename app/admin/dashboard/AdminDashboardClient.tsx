@@ -18,9 +18,9 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward' | 'batch_add' | 'group_add'>('scan');
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   const [student, setStudent] = useState<any>(null);
-  const [showHistory, setShowHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(false); // 歷史紀錄獨立開關
   
-  // 大聲公公告編輯狀態
+  // 公告編輯狀態 (已去大聲公化，改名為「公告」)
   const [showAnnModal, setShowAnnModal] = useState(false);
   const [annContent, setAnnContent] = useState(announcement);
   const [editAnnContent, setEditAnnContent] = useState(announcement);
@@ -40,10 +40,12 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [newRewardPoints, setNewRewardPoints] = useState<number>(20);
   const [newRewardDesc, setNewRewardDesc] = useState('');
 
+  // 勾選加點專用狀態 (已從批次加點改名為勾選加點)
   const [batchAmount, setBatchAmount] = useState<number>(5);
   const [batchReason, setBatchReason] = useState('參與社課加點');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
 
+  // 即時加點專用狀態 (已從掃碼加點改名為即時加點)
   const [groupTitle, setGroupTitle] = useState('社課出席加點');
   const [groupPoints, setGroupPoints] = useState<number>(5);
   const [groupDuration, setGroupDuration] = useState<number>(5);
@@ -266,7 +268,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
     }
   };
 
-  // 管理員編輯大聲公公告
+  // 編輯公告 (去大聲公化)
   const handleUpdateAnnouncement = async () => {
     if (editAnnContent.trim() === '') {
       alert('請輸入公告內容！');
@@ -282,7 +284,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage({ text: '大聲公公告已成功更新！', type: 'success' });
+        setMessage({ text: '公告已成功更新！', type: 'success' });
         setAnnContent(editAnnContent);
         setShowAnnModal(false);
       } else {
@@ -373,7 +375,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         </header>
 
-        {/* 💡 管理端大聲公公告跑馬燈 (只有在有公告內容時才顯示，無公告時自動完美隱藏) */}
+        {/* 💡 管理端公告：只有在有內容時才顯示 */}
         {annContent && annContent.trim() !== '' && (
           <div className="custom-marquee-container">
             <div className="custom-marquee-icon">
@@ -392,7 +394,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 大聲公編輯卡片面版 */}
+        {/* 公告編輯面板 */}
         {showAnnModal && (
           <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', padding: '24px' }}>
             <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center', marginBottom: '16px' }}>發布即時公告</h3>
@@ -417,14 +419,14 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 歷史紀錄卡片 */}
-        {showHistory && (
+        {/* 💡 歷史紀錄獨立面板：點選望遠鏡時在上方流暢彈出，隱藏所有其他 6 大頁籤 */}
+        {showHistory ? (
           <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', padding: '24px' }}>
-            <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center', marginBottom: '16px' }}>全體點數異動日誌</h3>
+            <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center', marginBottom: '16px' }}>論點異動查詢</h3>
             {transactions.length === 0 ? (
-              <p style={{ textAlign: 'center', color: '#64748B', fontSize: '14px', margin: 0 }}>資料庫目前尚無任何交易日誌</p>
+              <p style={{ textAlign: 'center', color: '#64748B', fontSize: '14px', margin: '24px 0' }}>資料庫目前尚無任何交易日誌</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto', marginBottom: '24px' }}>
                 {transactions.map((t) => (
                   <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 4px', borderBottom: '1px solid #E2E8F0', fontSize: '13px' }}>
                     <div style={{ textAlign: 'left', paddingRight: '8px' }}>
@@ -439,87 +441,91 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                 ))}
               </div>
             )}
+            <button onClick={() => setShowHistory(false)} className="custom-btn-primary" style={{ width: '100%' }}>
+              返回首頁
+            </button>
           </div>
-        )}
-
-        {/* 第一排按鈕 */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-          <button onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>掃描條碼</button>
-          <button onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>輸入帳號</button>
-          <button onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>社員名冊</button>
-        </div>
-
-        {/* 第二排按鈕 */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-          <button onClick={() => { setActiveTab('add_reward'); setMessage({ text: '', type: '' }); }} className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>新增獎品</button>
-          <button onClick={() => { setActiveTab('batch_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'batch_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>一次加點</button>
-          <button onClick={() => { setActiveTab('group_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'group_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>掃碼加點</button>
-        </div>
-
-        {activeTab !== 'students' && activeTab !== 'add_reward' && activeTab !== 'batch_add' && activeTab !== 'group_add' && (
+        ) : (
+          /* 主主控台畫面 */
           <div>
-            {step === 'scan_or_search' && (
+            {/* 💡 第一排：3個按鈕寬度完全等寬均分，100% 絕不亂行 */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+              <button onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>掃描條碼</button>
+              <button onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>輸入帳號</button>
+              <button onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>社員名冊</button>
+            </div>
+
+            {/* 💡 第二排：3個按鈕寬度完全等寬均分，與第一排完美垂直對稱，外部間距微調為舒適黃金的 16px */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+              <button onClick={() => { setActiveTab('add_reward'); setMessage({ text: '', type: '' }); }} className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>新增獎品</button>
+              <button onClick={() => { setActiveTab('batch_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'batch_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>一次加點</button>
+              <button onClick={() => { setActiveTab('group_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'group_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>掃碼加點</button>
+            </div>
+
+            {activeTab !== 'students' && activeTab !== 'add_reward' && activeTab !== 'batch_add' && activeTab !== 'group_add' && (
               <div>
-                <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center', display: activeTab === 'scan' ? 'block' : 'none', marginTop: '0px', marginBottom: '24px' }}>
-                  <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '16px' }}>請允許相機權限，將社員 QR Code 放置於鏡頭前</p>
-                  <div id="reader" style={{ borderRadius: '16px', overflow: 'hidden', border: '2px solid #CBD5E1' }}></div>
-                </div>
-
-                <div className="custom-card" style={{ maxWidth: '100%', display: activeTab === 'manual' ? 'block' : 'none', marginTop: '0px', marginBottom: '24px' }}>
-                  <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center' }}>手動查詢社員</h3>
+                {step === 'scan_or_search' && (
                   <div>
-                    <label className="custom-field-label">社員登入帳號 (帳號)</label>
-                    <input type="text" placeholder="例如 123" value={manualUsername} onChange={e => setManualUsername(e.target.value)} className="custom-input" />
-                    <button onClick={() => handleFetchStudent({ username: manualUsername })} disabled={loading || !manualUsername} className="custom-btn-primary" style={{ width: '100%' }}>{loading ? '查詢中...' : '查詢社員資料'}</button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {step === 'student_confirm' && student && (
-              <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', marginTop: '0px' }}>
-                <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>確認社員資訊</h3>
-                <div style={{ backgroundColor: '#FAF3E8', padding: '16px', borderRadius: '16px', border: '1px solid #CBD5E1', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div>
-                    <span style={{ fontSize: '13px', color: '#64748B' }}>姓名</span>
-                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1E293B', marginTop: '2px' }}>{student.name}</div>
-                  </div>
-                  <div>
-                    <span style={{ fontSize: '13px', color: '#64748B' }}>登入帳號 (帳號)</span>
-                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B', marginTop: '2px' }}>{student.username}</div>
-                  </div>
-                  <div>
-                    <span style={{ fontSize: '13px', color: '#64748B' }}>目前餘額</span>
-                    <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#0097B2', marginTop: '2px' }}>{student.points} 點</div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '16px' }}>
-                  <button onClick={() => { setStudent(null); setStep('scan_or_search'); }} className="custom-btn-secondary" style={{ flex: 1 }}>取消</button>
-                  <button onClick={() => setStep('points_adjust')} className="custom-btn-primary" style={{ flex: 1 }}>確認</button>
-                </div>
-              </div>
-            )}
-
-            {step === 'points_adjust' && student && (
-              <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', marginTop: '0px' }}>
-                <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '4px' }}>設定點數變更</h3>
-                <p className="custom-p" style={{ fontSize: '14px', marginBottom: '20px' }}>對象: {student.name} (目前 {student.points} 點)</p>
-
-                <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-                  <button onClick={() => { setAdjustMode('general'); setPointsAction('add'); setAmount(5); setReason('參與社課加點'); }} className={adjustMode === 'general' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }}>一般加扣點</button>
-                  <button onClick={() => { setAdjustMode('redeem'); if (rewardsList.length > 0) { setSelectedRewardId(rewardsList[0].id); } }} className={adjustMode === 'redeem' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }}>兌換獎品</button>
-                </div>
-
-                {adjustMode === 'general' ? (
-                  <div>
-                    <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
-                      <button onClick={() => setPointsAction('add')} className={pointsAction === 'add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px' }}>加點</button>
-                      <button onClick={() => setPointsAction('deduct')} className={pointsAction === 'deduct' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px' }}>扣點</button>
+                    <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center', display: activeTab === 'scan' ? 'block' : 'none', marginTop: '0px', marginBottom: '24px' }}>
+                      <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '16px' }}>請允許相機權限，將社員 QR Code 放置於鏡頭前</p>
+                      <div id="reader" style={{ borderRadius: '16px', overflow: 'hidden', border: '2px solid #CBD5E1' }}></div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+
+                    <div className="custom-card" style={{ maxWidth: '100%', display: activeTab === 'manual' ? 'block' : 'none', marginTop: '0px', marginBottom: '24px' }}>
+                      <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center' }}>手動查詢社員</h3>
                       <div>
-                        <label className="custom-field-label">變更點數值 (正數)</label>
-                        <input type="number" min="1" value={amount} onChange={e => setAmount(Math.max(1, Number(e.target.value)))} className="custom-input" />
+                        <label className="custom-field-label">社員登入帳號 (帳號)</label>
+                        <input type="text" placeholder="例如 123" value={manualUsername} onChange={e => setManualUsername(e.target.value)} className="custom-input" />
+                        <button onClick={() => handleFetchStudent({ username: manualUsername })} disabled={loading || !manualUsername} className="custom-btn-primary" style={{ width: '100%' }}>{loading ? '查詢中...' : '查詢社員資料'}</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {step === 'student_confirm' && student && (
+                  <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', marginTop: '0px' }}>
+                    <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>確認社員資訊</h3>
+                    <div style={{ backgroundColor: '#FAF3E8', padding: '16px', borderRadius: '16px', border: '1px solid #CBD5E1', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div>
+                        <span style={{ fontSize: '13px', color: '#64748B' }}>姓名</span>
+                        <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1E293B', marginTop: '2px' }}>{student.name}</div>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '13px', color: '#64748B' }}>登入帳號 (帳號)</span>
+                        <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B', marginTop: '2px' }}>{student.username}</div>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '13px', color: '#64748B' }}>目前餘額</span>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#0097B2', marginTop: '2px' }}>{student.points} 點</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                      <button onClick={() => { setStudent(null); setStep('scan_or_search'); }} className="custom-btn-secondary" style={{ flex: 1 }}>取消</button>
+                      <button onClick={() => setStep('points_adjust')} className="custom-btn-primary" style={{ flex: 1 }}>確認</button>
+                    </div>
+                  </div>
+                )}
+
+                {step === 'points_adjust' && student && (
+                  <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', marginTop: '0px' }}>
+                    <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '4px' }}>設定點數變更</h3>
+                    <p className="custom-p" style={{ fontSize: '14px', marginBottom: '20px' }}>對象: {student.name} (目前 {student.points} 點)</p>
+
+                    <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+                      <button onClick={() => { setAdjustMode('general'); setPointsAction('add'); setAmount(5); setReason('參與社課加點'); }} className={adjustMode === 'general' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }}>一般加扣點</button>
+                      <button onClick={() => { setAdjustMode('redeem'); if (rewardsList.length > 0) { setSelectedRewardId(rewardsList[0].id); } }} className={adjustMode === 'redeem' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }}>兌換獎品</button>
+                    </div>
+
+                    {adjustMode === 'general' ? (
+                      <div>
+                        <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+                          <button onClick={() => setPointsAction('add')} className={pointsAction === 'add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px' }}>加點</button>
+                          <button onClick={() => setPointsAction('deduct')} className={pointsAction === 'deduct' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px' }}>扣點</button>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <div>
+                            <label className="custom-field-label">變更點數值 (正數)</label>
+                            <input type="number" min="1" value={amount} onChange={e => setAmount(Math.max(1, Number(e.target.value)))} className="custom-input" />
                       </div>
                       <div>
                         <label className="custom-field-label">變更事由</label>
@@ -744,7 +750,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 頁籤六：即時出席加點 QR Code 產生器 (💡 內文已修正為「即時」) */}
+        {/* 💡 頁籤六：即時出席加點 QR Code 產生器 (內文已更正為「即時」) */}
         {activeTab === 'group_add' && (
           <div>
             {!claimId ? (

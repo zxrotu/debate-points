@@ -110,7 +110,7 @@ html, body {
   display: block !important;
   width: 100% !important;
   background-color: #0097B2 !important;
-  color: #FFFFFF !important; /* 確保 100% 純白字，高對比 */
+  color: #FFFFFF !important;
   font-weight: bold !important;
   font-size: 16px !important;
   padding: 14px 24px !important;
@@ -164,21 +164,13 @@ html, body {
   background-color: #F1FAFC !important;
 }
 
-#reader__camera_selection, 
-#reader__dashboard_section_swaplink,
-#reader__header_message,
-#reader-student__camera_selection, 
-#reader-student__dashboard_section_swaplink,
-#reader-student__header_message {
-  display: none !important;
-}
-/* 追加在最下方：膠囊跑馬燈與滾動動畫樣式 (100% 穩定，不分手機/電腦、不分深色模式) */
+/* 跑馬燈外框與字體設定 */
 .custom-marquee-container {
   display: flex !important;
   align-items: center !important;
   background-color: #FFFFFF !important;
   border: 2px solid #CBD5E1 !important;
-  border-radius: 9999px !important; /* 膠囊圓角 */
+  border-radius: 9999px !important;
   padding: 8px 16px !important;
   margin-bottom: 24px !important;
   overflow: hidden !important;
@@ -186,7 +178,6 @@ html, body {
   box-sizing: border-box !important;
 }
 
-/* 鎖死在左側的大聲公圖示 */
 .custom-marquee-icon {
   color: #0097B2 !important;
   margin-right: 10px !important;
@@ -195,7 +186,6 @@ html, body {
   align-items: center !important;
 }
 
-/* 跑馬燈滾動視窗 */
 .custom-marquee-text-wrapper {
   overflow: hidden !important;
   white-space: nowrap !important;
@@ -203,7 +193,6 @@ html, body {
   position: relative !important;
 }
 
-/* 跑馬燈無限滾動字體：14px，粗體，色對比極佳 */
 .custom-marquee-text {
   display: inline-block !important;
   padding-left: 100% !important;
@@ -214,10 +203,16 @@ html, body {
 }
 
 @keyframes custom-marquee-scroll {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  100% {
-    transform: translate3d(-100%, 0, 0);
-  }
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-100%, 0, 0); }
+}
+
+/* 隱藏雙端相機不必要的 UI 選擇項目 */
+#reader__camera_selection, 
+#reader__dashboard_section_swaplink,
+#reader__header_message,
+#reader-student__camera_selection, 
+#reader-student__dashboard_section_swaplink,
+#reader-student__header_message {
+  display: none !important;
 }
