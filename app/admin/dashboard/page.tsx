@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { verifyToken } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
+import AdminDashboardClient from './AdminDashboardClient'; // 💡 補齊第 5 行：精準導入管理員 Client 元件
 
 export default async function AdminDashboardPage() {
   const cookieStore = await cookies();
@@ -59,7 +60,7 @@ export default async function AdminDashboardPage() {
     });
   }
 
-  // 💡 防禦性公告查詢：即使資料庫沒建 announcements 表也絕對不崩潰
+  // 防禦性容錯查詢：即使資料庫沒建 announcements 表也絕對不崩潰
   let announcement = '';
   try {
     const { data: annData, error: annError } = await supabase
@@ -72,7 +73,7 @@ export default async function AdminDashboardPage() {
       announcement = annData.content || '';
     }
   } catch (err) {
-    console.error(err);
+    console.error("Announcements table not ready yet:", err);
   }
 
   return (
