@@ -3,13 +3,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { Telescope, Megaphone } from 'lucide-react'; // 💡 引入大聲公
+import { Telescope, Megaphone } from 'lucide-react';
 
 interface MemberDashboardClientProps {
   profile: any;
   rewards: any[];
   transactions: any[];
-  announcement: string; // 💡 接收公告
+  announcement: string;
 }
 
 export default function MemberDashboardClient({ profile, rewards, transactions, announcement }: MemberDashboardClientProps) {
@@ -147,15 +147,17 @@ export default function MemberDashboardClient({ profile, rewards, transactions, 
           </div>
         </header>
 
-        {/* 💡 學生端大聲公公告跑馬燈 (在紅框處完美顯示) */}
-        <div className="custom-marquee-container">
-          <div className="custom-marquee-icon">
-            <Megaphone size={16} />
+        {/* 💡 學生端大聲公公告跑馬燈 (只有在有公告內容時才顯示，無公告時自動完美隱藏) */}
+        {announcement && announcement.trim() !== '' && (
+          <div className="custom-marquee-container">
+            <div className="custom-marquee-icon">
+              <Megaphone size={16} />
+            </div>
+            <div className="custom-marquee-text-wrapper">
+              <span className="custom-marquee-text">{announcement}</span>
+            </div>
           </div>
-          <div className="custom-marquee-text-wrapper">
-            <span className="custom-marquee-text">{announcement}</span>
-          </div>
-        </div>
+        )}
 
         {scanMessage.text && (
           <div style={{ padding: '16px', borderRadius: '16px', border: '1px solid', marginBottom: '24px', textAlign: 'center', fontSize: '14px', backgroundColor: scanMessage.type === 'success' ? '#ECFDF5' : scanMessage.type === 'info' ? '#F1FAFC' : '#FEF2F2', borderColor: scanMessage.type === 'success' ? '#10B981' : scanMessage.type === 'info' ? '#0097B2' : '#F87171', color: scanMessage.type === 'success' ? '#047857' : scanMessage.type === 'info' ? '#0097B2' : '#B91C1C', fontWeight: 'bold' }}>

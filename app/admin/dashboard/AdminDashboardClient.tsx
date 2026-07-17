@@ -9,7 +9,7 @@ interface AdminDashboardClientProps {
   adminName: string;
   initialRewards: any[];
   transactions: any[];
-  announcement: string; // 💡 接收公告
+  announcement: string;
 }
 
 export default function AdminDashboardClient({ adminName, initialRewards, transactions, announcement }: AdminDashboardClientProps) {
@@ -20,7 +20,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [student, setStudent] = useState<any>(null);
   const [showHistory, setShowHistory] = useState(false);
   
-  // 💡 新增：大聲公公告編輯狀態
+  // 大聲公公告編輯狀態
   const [showAnnModal, setShowAnnModal] = useState(false);
   const [annContent, setAnnContent] = useState(announcement);
   const [editAnnContent, setEditAnnContent] = useState(announcement);
@@ -266,7 +266,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
     }
   };
 
-  // 💡 新增：管理員編輯大聲公公告
+  // 管理員編輯大聲公公告
   const handleUpdateAnnouncement = async () => {
     if (editAnnContent.trim() === '') {
       alert('請輸入公告內容！');
@@ -283,7 +283,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
       const data = await res.json();
       if (res.ok) {
         setMessage({ text: '大聲公公告已成功更新！', type: 'success' });
-        setAnnContent(editAnnContent); // 即時更新本地跑馬燈
+        setAnnContent(editAnnContent);
         setShowAnnModal(false);
       } else {
         setMessage({ text: data.error || '公告更新失敗', type: 'error' });
@@ -333,7 +333,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '16px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
       <div className="content-wrapper" style={{ width: '100%', maxWidth: '500px' }}>
         
-        {/* 標題欄：望遠鏡、大聲公編輯、登出按鈕 */}
+        {/* 標題欄 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
           <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>Hello! {adminName}</span>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -353,7 +353,6 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
             >
               <Telescope size={16} />
             </button>
-            {/* 💡 編輯大聲公按鈕：位於搜尋右側、登出左側 */}
             <button 
               onClick={() => { setShowAnnModal(!showAnnModal); setShowHistory(false); }} 
               className="custom-btn-logout"
@@ -374,15 +373,17 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         </header>
 
-        {/* 💡 管理端大聲公公告跑馬燈 (與學生端完美同步，極具質感) */}
-        <div className="custom-marquee-container">
-          <div className="custom-marquee-icon">
-            <Megaphone size={16} />
+        {/* 💡 管理端大聲公公告跑馬燈 (只有在有公告內容時才顯示，無公告時自動完美隱藏) */}
+        {annContent && annContent.trim() !== '' && (
+          <div className="custom-marquee-container">
+            <div className="custom-marquee-icon">
+              <Megaphone size={16} />
+            </div>
+            <div className="custom-marquee-text-wrapper">
+              <span className="custom-marquee-text">{annContent}</span>
+            </div>
           </div>
-          <div className="custom-marquee-text-wrapper">
-            <span className="custom-marquee-text">{annContent}</span>
-          </div>
-        </div>
+        )}
 
         {/* 訊息提示 */}
         {message.text && (
@@ -391,7 +392,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 💡 大聲公編輯卡片面版 */}
+        {/* 大聲公編輯卡片面版 */}
         {showAnnModal && (
           <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', padding: '24px' }}>
             <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center', marginBottom: '16px' }}>發布即時公告</h3>
@@ -576,6 +577,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                 <p style={{ color: '#64748B', margin: 0 }}>找不到符合條件的社員</p>
               </div>
             ) : (
+              /* 💡 統一改用極簡單卡片、細灰色線條分割排版 */
               <div className="custom-card" style={{ maxWidth: '100%', padding: '24px' }}>
                 {filteredStudents.map((s, index) => (
                   <div 
@@ -629,6 +631,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                 <p style={{ color: '#64748B', margin: 0 }}>目前資料庫內尚無獎品</p>
               </div>
             ) : (
+              /* 💡 統一改用極簡單卡片、細灰色線條分割排版 */
               <div className="custom-card" style={{ maxWidth: '100%', padding: '24px' }}>
                 {rewardsList.map((reward, index) => (
                   <div 
@@ -704,6 +707,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                 <p style={{ color: '#64748B', margin: 0 }}>找不到符合條件的社員</p>
               </div>
             ) : (
+              /* 💡 統一改用極簡單卡片、細灰色線條分割排版 */
               <div className="custom-card" style={{ maxWidth: '100%', padding: '24px' }}>
                 {filteredStudents.map((s, index) => {
                   const isChecked = selectedStudentIds.includes(s.id);
@@ -740,7 +744,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 頁籤六：即時出席加點 QR Code 產生器 (內文已更正為「即時」) */}
+        {/* 頁籤六：即時出席加點 QR Code 產生器 (💡 內文已修正為「即時」) */}
         {activeTab === 'group_add' && (
           <div>
             {!claimId ? (

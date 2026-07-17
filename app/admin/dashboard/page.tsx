@@ -60,21 +60,28 @@ export default async function AdminDashboardPage() {
     });
   }
 
-  // 💡 預先撈取最新公告
-  const { data: annData } = await supabase
-    .from('announcements')
-    .select('content')
-    .eq('id', 1)
-    .maybeSingle();
+  // 💡 防禦性容錯查詢：即使資料庫沒建 announcements 表，也絕對不崩潰網頁！
+  let announcement = '';
+  try {
+    const { data: annData, error: annError } = await supabase
+      .from('announcements')
+      .select('content')
+      .eq('id', 1)
+      .maybeSingle();
 
-  const announcement = annData?.content || '歡迎來到辯論社線上集點系統！';
+    if (!annError && annData) {
+      announcement = annData.content || '';
+    }
+  } catch (err) {
+    console.error("Announcements table not ready yet:", err);
+  }
 
   return (
     <AdminDashboardClient 
       adminName={profile.name} 
       initialRewards={rewards || []} 
       transactions={formattedTransactions}
-      announcement={announcement} // 💡 傳入公告
+      announcement={announcement}
     />
   );
 }
