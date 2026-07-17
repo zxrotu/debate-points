@@ -15,11 +15,13 @@ interface AdminDashboardClientProps {
 export default function AdminDashboardClient({ adminName, initialRewards, transactions, announcement }: AdminDashboardClientProps) {
   const router = useRouter();
   
+  // 頁籤控制
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward' | 'batch_add' | 'group_add'>('scan');
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   const [student, setStudent] = useState<any>(null);
   const [showHistory, setShowHistory] = useState(false);
   
+  // 公告編輯狀態
   const [showAnnModal, setShowAnnModal] = useState(false);
   const [annContent, setAnnContent] = useState(announcement);
   const [editAnnContent, setEditAnnContent] = useState(announcement);
@@ -39,6 +41,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [newRewardPoints, setNewRewardPoints] = useState<number>(20);
   const [newRewardDesc, setNewRewardDesc] = useState('');
 
+  // 一次加點與集體掃碼狀態
   const [batchAmount, setBatchAmount] = useState<number>(5);
   const [batchReason, setBatchReason] = useState('參與社課加點');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
@@ -54,6 +57,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
 
+  // 初始化個人掃描相機
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
     if (step === 'scan_or_search' && activeTab === 'scan') {
@@ -68,12 +72,14 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
     };
   }, [step, activeTab]);
 
+  // 載入社員名冊
   useEffect(() => {
     if (activeTab === 'students' || activeTab === 'batch_add') {
       fetchStudents();
     }
   }, [activeTab]);
 
+  // 集體掃碼倒數計時計
   useEffect(() => {
     if (!expiresAt) return;
     const interval = setInterval(() => {
@@ -265,6 +271,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
     }
   };
 
+  // 💡 補齊此公告更新函數，徹底清除紅字！
   const handleUpdateAnnouncement = async () => {
     if (editAnnContent.trim() === '') {
       alert('請輸入公告內容！');
@@ -371,7 +378,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         </header>
 
-        {/* 💡 公告欄：若無設定公告內容（或為空），自動完全隱藏，不影響美觀 */}
+        {/* 公告欄：若無設定公告內容，自動完全隱藏 */}
         {annContent && annContent.trim() !== '' && (
           <div className="custom-marquee-container">
             <div className="custom-marquee-icon">
@@ -415,7 +422,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 💡 歷史紀錄獨立面板：新增「返回首頁」大按鈕，高對比排版 */}
+        {/* 歷史紀錄獨立面板 */}
         {showHistory ? (
           <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', padding: '24px' }}>
             <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center', marginBottom: '16px' }}>論點異動查詢</h3>
@@ -572,15 +579,16 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           <div>
             <h2 className="custom-h2" style={{ paddingLeft: '8px' }}>社員點數名冊</h2>
             <div style={{ marginBottom: '16px' }}>
-              <input type="text" placeholder="搜尋姓名或帳號..." value={searchKeyword} onChange={e => setSearchKeyword(e.target.value)} className="custom-input" style={{ marginBottom: '0px' }} />
+              <input type="text" placeholder="搜尋社員姓名或帳號..." value={searchKeyword} onChange={e => setSearchKeyword(e.target.value)} className="custom-input" style={{ marginBottom: '0px' }} />
             </div>
             {loading ? (
               <p style={{ textAlign: 'center', color: '#64748B' }}>名單加載中...</p>
             ) : filteredStudents.length === 0 ? (
               <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center' }}>
-                <p style={{ color: '#64748B', margin: 0 }}>找不到符合條件的社員</p>
+                <p style={{ color: '#64748B', margin: 0 }}>找不到符合條件 of the社員</p>
               </div>
             ) : (
+              /* 💡 統一改用極簡單卡片、細灰色線條分割排版 */
               <div className="custom-card" style={{ maxWidth: '100%', padding: '24px' }}>
                 {filteredStudents.map((s, index) => (
                   <div 
@@ -634,6 +642,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                 <p style={{ color: '#64748B', margin: 0 }}>目前資料庫內尚無獎品</p>
               </div>
             ) : (
+              /* 💡 統一改用極簡單卡片、細灰色線條分割排版 */
               <div className="custom-card" style={{ maxWidth: '100%', padding: '24px' }}>
                 {rewardsList.map((reward, index) => (
                   <div 
@@ -709,6 +718,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                 <p style={{ color: '#64748B', margin: 0 }}>找不到符合條件的社員</p>
               </div>
             ) : (
+              /* 💡 統一改用極簡單卡片、細灰色線條分割排版 */
               <div className="custom-card" style={{ maxWidth: '100%', padding: '24px' }}>
                 {filteredStudents.map((s, index) => {
                   const isChecked = selectedStudentIds.includes(s.id);
@@ -745,7 +755,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 頁籤六：即時出席加點 QR Code 產生器 (💡 內文已修正為「即時」) */}
+        {/* 頁籤六：即時出席加點 QR Code 產生器 */}
         {activeTab === 'group_add' && (
           <div>
             {!claimId ? (
@@ -764,7 +774,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                   <input type="number" min="1" value={groupDuration} onChange={e => setGroupDuration(Math.max(1, Number(e.target.value)))} className="custom-input" />
                 </div>
                 <button onClick={handleCreateGroupClaim} disabled={loading} className="custom-btn-primary" style={{ width: '100%', marginTop: '8px' }}>
-                  {loading ? '生成中...' : '產生即時加點安全碼'}
+                  生成安全碼
                 </button>
               </div>
             ) : (
