@@ -14,7 +14,7 @@ interface AdminDashboardClientProps {
 export default function AdminDashboardClient({ adminName, initialRewards, transactions }: AdminDashboardClientProps) {
   const router = useRouter();
   
-  // 頁籤切換: 'scan' (掃描條碼) / 'manual' (輸入帳號) / 'students' (社員名冊) / 'add_reward' (新增獎品) / 'batch_add' (一次加點) / 'group_add' (掃碼加點)
+  // 💡 頁籤控制
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward' | 'batch_add' | 'group_add'>('scan');
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   const [student, setStudent] = useState<any>(null);
@@ -35,6 +35,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [newRewardPoints, setNewRewardPoints] = useState<number>(20);
   const [newRewardDesc, setNewRewardDesc] = useState('');
 
+  // 💡 批次加點與集體掃碼狀態
   const [batchAmount, setBatchAmount] = useState<number>(5);
   const [batchReason, setBatchReason] = useState('參與社課加點');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
@@ -50,6 +51,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
 
+  // 初始化相機
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
     if (step === 'scan_or_search' && activeTab === 'scan') {
@@ -490,14 +492,26 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                 <p style={{ color: '#64748B', margin: 0 }}>找不到符合條件的社員</p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {filteredStudents.map((s) => (
-                  <div key={s.id} className="custom-card" style={{ maxWidth: '100%', padding: '16px 20px', margin: '0 auto 24px auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              /* 💡 統一改用極簡單卡片、細灰色線條分割排版 */
+              <div className="custom-card" style={{ maxWidth: '100%', padding: '24px' }}>
+                {filteredStudents.map((s, index) => (
+                  <div 
+                    key={s.id} 
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center', 
+                      padding: '14px 0', 
+                      borderBottom: index === filteredStudents.length - 1 ? 'none' : '1px solid #E2E8F0' 
+                    }}
+                  >
                     <div style={{ textAlign: 'left' }}>
                       <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B' }}>{s.name}</div>
-                      <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>帳號: {s.username}</div>
+                      <div style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>帳號: {s.username}</div>
                     </div>
-                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#0097B2' }}>{s.points} <span style={{ fontSize: '12px', fontWeight: 'normal', color: '#475569' }}>點</span></div>
+                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#0097B2' }}>
+                      {s.points} <span style={{ fontSize: '12px', fontWeight: 'normal', color: '#475569' }}>點</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -527,32 +541,52 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
             </div>
 
             <h2 className="custom-h2" style={{ paddingLeft: '8px', fontSize: '18px', marginTop: '32px' }}>目前獎品清單 (可於手機直接刪除)</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {rewardsList.map((reward) => (
-                <div key={reward.id} className="custom-card" style={{ maxWidth: '100%', padding: '16px 20px', margin: '0 auto 24px auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ textAlign: 'left', paddingRight: '8px' }}>
-                    <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#1E293B' }}>{reward.title}</div>
-                    <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>所需點數: {reward.points_required} 點</div>
-                  </div>
-                  <button 
-                    onClick={() => handleDeleteReward(reward.id)} 
-                    disabled={loading}
-                    className="custom-btn-logout"
-                    style={{ fontSize: '12px', padding: '4px 12px', color: '#EF4444', borderColor: '#EF4444' }}
+            {rewardsList.length === 0 ? (
+              <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center' }}>
+                <p style={{ color: '#64748B', margin: 0 }}>目前資料庫內尚無獎品</p>
+              </div>
+            ) : (
+              /* 💡 統一改用極簡單卡片、細灰色線條分割排版 */
+              <div className="custom-card" style={{ maxWidth: '100%', padding: '24px' }}>
+                {rewardsList.map((reward, index) => (
+                  <div 
+                    key={reward.id} 
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center', 
+                      padding: '16px 0', 
+                      borderBottom: index === rewardsList.length - 1 ? 'none' : '1px solid #E2E8F0' 
+                    }}
                   >
-                    刪除
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <div style={{ textAlign: 'left', paddingRight: '12px' }}>
+                      {/* 💡 獎品名稱放大為 18px，描述與點數高對比大字呈現 */}
+                      <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1E293B' }}>{reward.title}</div>
+                      {reward.description && <div style={{ fontSize: '14px', color: '#475569', marginTop: '4px' }}>{reward.description}</div>}
+                      <div style={{ fontSize: '14px', color: '#64748B', marginTop: '6px' }}>
+                        所需點數: <strong style={{ fontSize: '16px', color: '#0097B2', fontWeight: 'bold' }}>{reward.points_required}</strong> 點
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => handleDeleteReward(reward.id)} 
+                      disabled={loading}
+                      className="custom-btn-logout"
+                      style={{ fontSize: '12px', padding: '4px 12px', color: '#EF4444', borderColor: '#EF4444' }}
+                    >
+                      刪除
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* 頁籤五：批次手動勾選加點 UI */}
+        {/* 頁籤五：一次加點 UI */}
         {activeTab === 'batch_add' && (
           <div>
             <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px' }}>
-              <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>設定批次加點參數</h3>
+              <h3 className="custom-h2" style={{ fontSize: '20px', textAlign: 'center', marginBottom: '24px' }}>設定一次加點參數</h3>
               <div>
                 <label className="custom-field-label">加點分數 (正數)</label>
                 <input type="number" min="1" value={batchAmount} onChange={e => setBatchAmount(Math.max(1, Number(e.target.value)))} className="custom-input" />
@@ -589,24 +623,23 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                 <p style={{ color: '#64748B', margin: 0 }}>找不到符合條件的社員</p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {filteredStudents.map((s) => {
+              /* 💡 統一改用極簡單卡片、細灰色線條分割排版 */
+              <div className="custom-card" style={{ maxWidth: '100%', padding: '24px' }}>
+                {filteredStudents.map((s, index) => {
                   const isChecked = selectedStudentIds.includes(s.id);
                   return (
                     <div 
                       key={s.id} 
                       onClick={() => handleToggleSelectStudent(s.id)}
-                      className="custom-card" 
                       style={{ 
-                        maxWidth: '100%', 
-                        padding: '16px 20px', 
-                        margin: '0 auto 24px auto', 
                         display: 'flex', 
                         alignItems: 'center',
                         gap: '16px',
+                        padding: '14px 0',
                         cursor: 'pointer',
-                        border: isChecked ? '2px solid #0097B2' : '2px solid #CBD5E1',
-                        backgroundColor: isChecked ? '#F1FAFC' : '#FFFFFF'
+                        borderBottom: index === filteredStudents.length - 1 ? 'none' : '1px solid #E2E8F0',
+                        color: isChecked ? '#0097B2' : '#000000',
+                        fontWeight: isChecked ? 'bold' : 'normal'
                       }}
                     >
                       <input 
@@ -616,8 +649,8 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                         style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#0097B2' }}
                       />
                       <div style={{ textAlign: 'left', flexGrow: 1 }}>
-                        <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E293B' }}>{s.name}</div>
-                        <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>帳號: {s.username} | 目前: {s.points} 點</div>
+                        <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{s.name}</div>
+                        <div style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>帳號: {s.username} | 目前: {s.points} 點</div>
                       </div>
                     </div>
                   );
@@ -627,7 +660,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 頁籤六：即時出席加點 QR Code 產生器 */}
+        {/* 頁籤六：集體出席加點 QR Code 產生器 */}
         {activeTab === 'group_add' && (
           <div>
             {!claimId ? (
