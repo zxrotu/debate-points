@@ -15,11 +15,11 @@ interface AdminDashboardClientProps {
 export default function AdminDashboardClient({ adminName, initialRewards, transactions, announcement }: AdminDashboardClientProps) {
   const router = useRouter();
   
-  // 頁籤控制
+  // 頁籤控制 (完全支援 3+3 排列)
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward' | 'batch_add' | 'group_add'>('scan');
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   const [student, setStudent] = useState<any>(null);
-  const [showHistory, setShowHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(false); // 歷史紀錄獨立面板開關
   
   // 公告編輯狀態
   const [showAnnModal, setShowAnnModal] = useState(false);
@@ -41,11 +41,12 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [newRewardPoints, setNewRewardPoints] = useState<number>(20);
   const [newRewardDesc, setNewRewardDesc] = useState('');
 
-  // 一次加點與集體掃碼狀態
+  // 勾選加點狀態 (已對齊新用詞)
   const [batchAmount, setBatchAmount] = useState<number>(5);
   const [batchReason, setBatchReason] = useState('參與社課加點');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
 
+  // 即時加點狀態
   const [groupTitle, setGroupTitle] = useState('社課出席加點');
   const [groupPoints, setGroupPoints] = useState<number>(5);
   const [groupDuration, setGroupDuration] = useState<number>(5);
@@ -57,7 +58,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
 
-  // 初始化個人掃描相機
+  // 初始化相機
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
     if (step === 'scan_or_search' && activeTab === 'scan') {
@@ -72,14 +73,14 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
     };
   }, [step, activeTab]);
 
-  // 載入社員名冊
+  // 載入學員名單
   useEffect(() => {
     if (activeTab === 'students' || activeTab === 'batch_add') {
       fetchStudents();
     }
   }, [activeTab]);
 
-  // 集體掃碼倒數計時計
+  // 集體掃碼倒數計時
   useEffect(() => {
     if (!expiresAt) return;
     const interval = setInterval(() => {
@@ -187,11 +188,11 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
     setLoading(false);
 
     if (res.ok) {
-      setMessage({ text: `一次加點成功！已順利為 ${data.count} 位社員加上 ${batchAmount} 個論點！`, type: 'success' });
+      setMessage({ text: `勾選加點成功！已順利為 ${data.count} 位社員加上 ${batchAmount} 個論點！`, type: 'success' });
       setSelectedStudentIds([]);
       fetchStudents();
     } else {
-      setMessage({ text: data.error || '一次加點失敗', type: 'error' });
+      setMessage({ text: data.error || '勾選加點失敗', type: 'error' });
     }
   };
 
@@ -271,7 +272,6 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
     }
   };
 
-  // 💡 補齊此公告更新函數，徹底清除紅字！
   const handleUpdateAnnouncement = async () => {
     if (editAnnContent.trim() === '') {
       alert('請輸入公告內容！');
@@ -378,8 +378,8 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         </header>
 
-        {/* 公告欄：若無設定公告內容，自動完全隱藏 */}
-        {annContent && annContent.trim() !== '' && (
+        {/* 公告欄 */}
+        {annContent && annContent.trim() !== '' && !showHistory && (
           <div className="custom-marquee-container">
             <div className="custom-marquee-icon">
               <Megaphone size={16} />
@@ -400,7 +400,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
         {/* 公告編輯面板 */}
         {showAnnModal && (
           <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', padding: '24px' }}>
-            <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center', marginBottom: '16px' }}>發布即時公告</h3>
+            <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center' }}>發布即時公告</h3>
             <div>
               <label className="custom-field-label">公告內容</label>
               <input 
@@ -422,7 +422,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 歷史紀錄獨立面板 */}
+        {/* 💡 歷史紀錄獨立面板 (當 showHistory 為真時，完全獨立顯示，下方附帶返回按鈕) */}
         {showHistory ? (
           <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', padding: '24px' }}>
             <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center', marginBottom: '16px' }}>論點異動查詢</h3>
@@ -449,20 +449,20 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
             </button>
           </div>
         ) : (
-          /* 主主控台畫面 */
+          /* 主控制台畫面 */
           <div>
-            {/* 第一排按鈕 */}
+            {/* 第一排按鈕：徹底獨立 div 容器，3個按鈕寬度完全等寬均分，100% 絕不亂行 */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
               <button onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>掃描條碼</button>
               <button onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>輸入帳號</button>
               <button onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>社員名冊</button>
             </div>
 
-            {/* 第二排按鈕 */}
+            {/* 第二排按鈕：對齊名稱「勾選加點」、「即時加點」，垂直完美對稱，外部間距微調為舒適黃金的 16px */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
               <button onClick={() => { setActiveTab('add_reward'); setMessage({ text: '', type: '' }); }} className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>新增獎品</button>
-              <button onClick={() => { setActiveTab('batch_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'batch_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>一次加點</button>
-              <button onClick={() => { setActiveTab('group_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'group_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>掃碼加點</button>
+              <button onClick={() => { setActiveTab('batch_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'batch_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>勾選加點</button>
+              <button onClick={() => { setActiveTab('group_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'group_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>即時加點</button>
             </div>
 
             {activeTab !== 'students' && activeTab !== 'add_reward' && activeTab !== 'batch_add' && activeTab !== 'group_add' && (
@@ -585,7 +585,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
               <p style={{ textAlign: 'center', color: '#64748B' }}>名單加載中...</p>
             ) : filteredStudents.length === 0 ? (
               <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center' }}>
-                <p style={{ color: '#64748B', margin: 0 }}>找不到符合條件 of the社員</p>
+                <p style={{ color: '#64748B', margin: 0 }}>找不到符合條件的社員</p>
               </div>
             ) : (
               /* 💡 統一改用極簡單卡片、細灰色線條分割排版 */
@@ -774,7 +774,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                   <input type="number" min="1" value={groupDuration} onChange={e => setGroupDuration(Math.max(1, Number(e.target.value)))} className="custom-input" />
                 </div>
                 <button onClick={handleCreateGroupClaim} disabled={loading} className="custom-btn-primary" style={{ width: '100%', marginTop: '8px' }}>
-                  生成安全碼
+                  產生即時加點安全碼
                 </button>
               </div>
             ) : (
