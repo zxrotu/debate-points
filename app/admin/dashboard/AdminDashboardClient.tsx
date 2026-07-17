@@ -18,9 +18,8 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward' | 'batch_add' | 'group_add'>('scan');
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   const [student, setStudent] = useState<any>(null);
-  const [showHistory, setShowHistory] = useState(false); // 歷史紀錄獨立開關
+  const [showHistory, setShowHistory] = useState(false);
   
-  // 公告編輯狀態 (已去大聲公化，改名為「公告」)
   const [showAnnModal, setShowAnnModal] = useState(false);
   const [annContent, setAnnContent] = useState(announcement);
   const [editAnnContent, setEditAnnContent] = useState(announcement);
@@ -40,12 +39,10 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [newRewardPoints, setNewRewardPoints] = useState<number>(20);
   const [newRewardDesc, setNewRewardDesc] = useState('');
 
-  // 勾選加點專用狀態 (已從批次加點改名為勾選加點)
   const [batchAmount, setBatchAmount] = useState<number>(5);
   const [batchReason, setBatchReason] = useState('參與社課加點');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
 
-  // 即時加點專用狀態 (已從掃碼加點改名為即時加點)
   const [groupTitle, setGroupTitle] = useState('社課出席加點');
   const [groupPoints, setGroupPoints] = useState<number>(5);
   const [groupDuration, setGroupDuration] = useState<number>(5);
@@ -268,7 +265,6 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
     }
   };
 
-  // 編輯公告 (去大聲公化)
   const handleUpdateAnnouncement = async () => {
     if (editAnnContent.trim() === '') {
       alert('請輸入公告內容！');
@@ -375,7 +371,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         </header>
 
-        {/* 💡 管理端公告：只有在有內容時才顯示 */}
+        {/* 💡 公告欄：若無設定公告內容（或為空），自動完全隱藏，不影響美觀 */}
         {annContent && annContent.trim() !== '' && (
           <div className="custom-marquee-container">
             <div className="custom-marquee-icon">
@@ -419,7 +415,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 💡 歷史紀錄獨立面板：點選望遠鏡時在上方流暢彈出，隱藏所有其他 6 大頁籤 */}
+        {/* 💡 歷史紀錄獨立面板：新增「返回首頁」大按鈕，高對比排版 */}
         {showHistory ? (
           <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', padding: '24px' }}>
             <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center', marginBottom: '16px' }}>論點異動查詢</h3>
@@ -427,8 +423,8 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
               <p style={{ textAlign: 'center', color: '#64748B', fontSize: '14px', margin: '24px 0' }}>資料庫目前尚無任何交易日誌</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto', marginBottom: '24px' }}>
-                {transactions.map((t) => (
-                  <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 4px', borderBottom: '1px solid #E2E8F0', fontSize: '13px' }}>
+                {transactions.map((t, index) => (
+                  <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 4px', borderBottom: index === transactions.length - 1 ? 'none' : '1px solid #E2E8F0', fontSize: '13px' }}>
                     <div style={{ textAlign: 'left', paddingRight: '8px' }}>
                       <div style={{ fontWeight: 'bold', color: '#1E293B' }}>{t.student_name} ({t.student_username})</div>
                       <div style={{ color: '#475569', fontSize: '12px', marginTop: '2px' }}>{t.reason}</div>
@@ -448,14 +444,14 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
         ) : (
           /* 主主控台畫面 */
           <div>
-            {/* 💡 第一排：3個按鈕寬度完全等寬均分，100% 絕不亂行 */}
+            {/* 第一排按鈕 */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
               <button onClick={() => { setActiveTab('scan'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>掃描條碼</button>
               <button onClick={() => { setActiveTab('manual'); setStep('scan_or_search'); setMessage({ text: '', type: '' }); }} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>輸入帳號</button>
               <button onClick={() => { setActiveTab('students'); setMessage({ text: '', type: '' }); }} className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>社員名冊</button>
             </div>
 
-            {/* 💡 第二排：3個按鈕寬度完全等寬均分，與第一排完美垂直對稱，外部間距微調為舒適黃金的 16px */}
+            {/* 第二排按鈕 */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
               <button onClick={() => { setActiveTab('add_reward'); setMessage({ text: '', type: '' }); }} className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>新增獎品</button>
               <button onClick={() => { setActiveTab('batch_add'); setMessage({ text: '', type: '' }); }} className={activeTab === 'batch_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px', whiteSpace: 'nowrap' }}>一次加點</button>
@@ -526,45 +522,47 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                           <div>
                             <label className="custom-field-label">變更點數值 (正數)</label>
                             <input type="number" min="1" value={amount} onChange={e => setAmount(Math.max(1, Number(e.target.value)))} className="custom-input" />
+                          </div>
+                          <div>
+                            <label className="custom-field-label">變更事由</label>
+                            <input type="text" value={reason} onChange={e => setReason(e.target.value)} className="custom-input" />
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <label className="custom-field-label">變更事由</label>
-                        <input type="text" value={reason} onChange={e => setReason(e.target.value)} className="custom-input" />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    {rewardsList.length === 0 ? (
-                      <p style={{ textAlign: 'center', color: '#64748B', fontSize: '14px', marginBottom: '24px' }}>目前資料庫內尚無獎品，請先去「新增獎品」頁籤建立！</p>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div>
-                          <label className="custom-field-label">選擇兌換獎品</label>
-                          <select value={selectedRewardId} onChange={e => setSelectedRewardId(Number(e.target.value))} className="custom-input">
-                            {rewardsList.map(r => (
-                              <option key={r.id} value={r.id}>{r.title} (扣除 {r.points_required} 點)</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="custom-field-label">兌換數量</label>
-                          <input type="number" min="1" value={redeemQuantity} onChange={e => setRedeemQuantity(Math.max(1, Number(e.target.value)))} className="custom-input" />
-                        </div>
-                        
-                        <div style={{ backgroundColor: '#FAF3E8', padding: '12px', borderRadius: '12px', border: '1px solid #CBD5E1', marginBottom: '24px', fontSize: '14px' }}>
-                          <div style={{ marginBottom: '6px' }}>自動變更：<strong style={{ color: '#EF4444' }}>-{amount} 點</strong></div>
-                          <div>自動事由：<strong>{reason}</strong></div>
-                        </div>
+                      <div>
+                        {rewardsList.length === 0 ? (
+                          <p style={{ textAlign: 'center', color: '#64748B', fontSize: '14px', marginBottom: '24px' }}>目前資料庫內尚無獎品，請先去「新增獎品」頁籤建立！</p>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div>
+                              <label className="custom-field-label">選擇兌換獎品</label>
+                              <select value={selectedRewardId} onChange={e => setSelectedRewardId(Number(e.target.value))} className="custom-input">
+                                {rewardsList.map(r => (
+                                  <option key={r.id} value={r.id}>{r.title} (扣除 {r.points_required} 點)</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="custom-field-label">兌換數量</label>
+                              <input type="number" min="1" value={redeemQuantity} onChange={e => setRedeemQuantity(Math.max(1, Number(e.target.value)))} className="custom-input" />
+                            </div>
+                            
+                            <div style={{ backgroundColor: '#FAF3E8', padding: '12px', borderRadius: '12px', border: '1px solid #CBD5E1', marginBottom: '24px', fontSize: '14px' }}>
+                              <div style={{ marginBottom: '6px' }}>自動變更：<strong style={{ color: '#EF4444' }}>-{amount} 點</strong></div>
+                              <div>自動事由：<strong>{reason}</strong></div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
+
+                    <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
+                      <button onClick={() => setStep('student_confirm')} className="custom-btn-secondary" style={{ flex: 1 }}>上一步</button>
+                      <button onClick={handlePointsActionSubmit} disabled={loading || (adjustMode === 'redeem' && rewardsList.length === 0)} className="custom-btn-primary" style={{ flex: 1 }}>{loading ? '提交中...' : '確認提交'}</button>
+                    </div>
                   </div>
                 )}
-
-                <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
-                  <button onClick={() => setStep('student_confirm')} className="custom-btn-secondary" style={{ flex: 1 }}>上一步</button>
-                  <button onClick={handlePointsActionSubmit} disabled={loading || (adjustMode === 'redeem' && rewardsList.length === 0)} className="custom-btn-primary" style={{ flex: 1 }}>{loading ? '提交中...' : '確認提交'}</button>
-                </div>
               </div>
             )}
           </div>
@@ -583,7 +581,6 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                 <p style={{ color: '#64748B', margin: 0 }}>找不到符合條件的社員</p>
               </div>
             ) : (
-              /* 💡 統一改用極簡單卡片、細灰色線條分割排版 */
               <div className="custom-card" style={{ maxWidth: '100%', padding: '24px' }}>
                 {filteredStudents.map((s, index) => (
                   <div 
@@ -637,7 +634,6 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                 <p style={{ color: '#64748B', margin: 0 }}>目前資料庫內尚無獎品</p>
               </div>
             ) : (
-              /* 💡 統一改用極簡單卡片、細灰色線條分割排版 */
               <div className="custom-card" style={{ maxWidth: '100%', padding: '24px' }}>
                 {rewardsList.map((reward, index) => (
                   <div 
@@ -713,7 +709,6 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                 <p style={{ color: '#64748B', margin: 0 }}>找不到符合條件的社員</p>
               </div>
             ) : (
-              /* 💡 統一改用極簡單卡片、細灰色線條分割排版 */
               <div className="custom-card" style={{ maxWidth: '100%', padding: '24px' }}>
                 {filteredStudents.map((s, index) => {
                   const isChecked = selectedStudentIds.includes(s.id);
@@ -750,7 +745,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 💡 頁籤六：即時出席加點 QR Code 產生器 (內文已更正為「即時」) */}
+        {/* 頁籤六：即時出席加點 QR Code 產生器 (💡 內文已修正為「即時」) */}
         {activeTab === 'group_add' && (
           <div>
             {!claimId ? (
