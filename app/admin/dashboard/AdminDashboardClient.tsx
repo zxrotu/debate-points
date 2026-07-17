@@ -3,23 +3,28 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { QRCodeSVG } from 'qrcode.react';
-import { Telescope } from 'lucide-react';
+import { Telescope, Megaphone } from 'lucide-react';
 
 interface AdminDashboardClientProps {
   adminName: string;
   initialRewards: any[];
   transactions: any[];
+  announcement: string; // 💡 接收公告
 }
 
-export default function AdminDashboardClient({ adminName, initialRewards, transactions }: AdminDashboardClientProps) {
+export default function AdminDashboardClient({ adminName, initialRewards, transactions, announcement }: AdminDashboardClientProps) {
   const router = useRouter();
   
-  // 💡 頁籤控制
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward' | 'batch_add' | 'group_add'>('scan');
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   const [student, setStudent] = useState<any>(null);
   const [showHistory, setShowHistory] = useState(false);
   
+  // 💡 新增：大聲公公告編輯狀態
+  const [showAnnModal, setShowAnnModal] = useState(false);
+  const [annContent, setAnnContent] = useState(announcement);
+  const [editAnnContent, setEditAnnContent] = useState(announcement);
+
   const [adjustMode, setAdjustMode] = useState<'general' | 'redeem'>('general');
   const [pointsAction, setPointsAction] = useState<'add' | 'deduct'>('add');
   const [amount, setAmount] = useState<number>(5);
@@ -35,7 +40,6 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [newRewardPoints, setNewRewardPoints] = useState<number>(20);
   const [newRewardDesc, setNewRewardDesc] = useState('');
 
-  // 💡 批次加點與集體掃碼狀態
   const [batchAmount, setBatchAmount] = useState<number>(5);
   const [batchReason, setBatchReason] = useState('參與社課加點');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
@@ -51,7 +55,6 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
 
-  // 初始化相機
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
     if (step === 'scan_or_search' && activeTab === 'scan') {
@@ -263,6 +266,35 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
     }
   };
 
+  // 💡 新增：管理員編輯大聲公公告
+  const handleUpdateAnnouncement = async () => {
+    if (editAnnContent.trim() === '') {
+      alert('請輸入公告內容！');
+      return;
+    }
+    setLoading(true);
+    setMessage({ text: '', type: '' });
+    try {
+      const res = await fetch('/api/admin/announcement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: editAnnContent }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({ text: '大聲公公告已成功更新！', type: 'success' });
+        setAnnContent(editAnnContent); // 即時更新本地跑馬燈
+        setShowAnnModal(false);
+      } else {
+        setMessage({ text: data.error || '公告更新失敗', type: 'error' });
+      }
+    } catch (err) {
+      setMessage({ text: '連線異常，更新失敗', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/');
@@ -301,12 +333,12 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '16px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
       <div className="content-wrapper" style={{ width: '100%', maxWidth: '500px' }}>
         
-        {/* 標題欄 */}
+        {/* 標題欄：望遠鏡、大聲公編輯、登出按鈕 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
           <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>Hello! {adminName}</span>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <button 
-              onClick={() => setShowHistory(!showHistory)} 
+              onClick={() => { setShowHistory(!showHistory); setShowAnnModal(false); }} 
               className="custom-btn-logout"
               style={{ 
                 display: 'flex', 
@@ -321,14 +353,66 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
             >
               <Telescope size={16} />
             </button>
+            {/* 💡 編輯大聲公按鈕：位於搜尋右側、登出左側 */}
+            <button 
+              onClick={() => { setShowAnnModal(!showAnnModal); setShowHistory(false); }} 
+              className="custom-btn-logout"
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                padding: '8px',
+                backgroundColor: showAnnModal ? '#0097B2' : '#FFFFFF',
+                color: showAnnModal ? '#FFFFFF' : '#0097B2',
+                borderColor: '#0097B2'
+              }}
+              title="發布公告"
+            >
+              <Megaphone size={16} />
+            </button>
             <button onClick={handleLogout} className="custom-btn-logout">登出</button>
           </div>
         </header>
+
+        {/* 💡 管理端大聲公公告跑馬燈 (與學生端完美同步，極具質感) */}
+        <div className="custom-marquee-container">
+          <div className="custom-marquee-icon">
+            <Megaphone size={16} />
+          </div>
+          <div className="custom-marquee-text-wrapper">
+            <span className="custom-marquee-text">{annContent}</span>
+          </div>
+        </div>
 
         {/* 訊息提示 */}
         {message.text && (
           <div style={{ padding: '16px', borderRadius: '16px', border: '1px solid', marginBottom: '24px', textAlign: 'center', fontSize: '14px', backgroundColor: message.type === 'success' ? '#ECFDF5' : '#FEF2F2', borderColor: message.type === 'success' ? '#10B981' : '#F87171', color: message.type === 'success' ? '#047857' : '#B91C1C' }}>
             {message.text}
+          </div>
+        )}
+
+        {/* 💡 大聲公編輯卡片面版 */}
+        {showAnnModal && (
+          <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', padding: '24px' }}>
+            <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center', marginBottom: '16px' }}>發布即時公告</h3>
+            <div>
+              <label className="custom-field-label">公告內容</label>
+              <input 
+                type="text" 
+                value={editAnnContent} 
+                onChange={e => setEditAnnContent(e.target.value)} 
+                className="custom-input" 
+                placeholder="輸入公告內容（如：今日社課地點改至 302 教室）..." 
+              />
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <button onClick={() => setShowAnnModal(false)} className="custom-btn-secondary" style={{ flex: 1 }}>
+                  取消
+                </button>
+                <button onClick={handleUpdateAnnouncement} disabled={loading} className="custom-btn-primary" style={{ flex: 1 }}>
+                  {loading ? '發布中...' : '確認發布'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -492,7 +576,6 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                 <p style={{ color: '#64748B', margin: 0 }}>找不到符合條件的社員</p>
               </div>
             ) : (
-              /* 💡 統一改用極簡單卡片、細灰色線條分割排版 */
               <div className="custom-card" style={{ maxWidth: '100%', padding: '24px' }}>
                 {filteredStudents.map((s, index) => (
                   <div 
@@ -546,7 +629,6 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                 <p style={{ color: '#64748B', margin: 0 }}>目前資料庫內尚無獎品</p>
               </div>
             ) : (
-              /* 💡 統一改用極簡單卡片、細灰色線條分割排版 */
               <div className="custom-card" style={{ maxWidth: '100%', padding: '24px' }}>
                 {rewardsList.map((reward, index) => (
                   <div 
@@ -560,7 +642,6 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                     }}
                   >
                     <div style={{ textAlign: 'left', paddingRight: '12px' }}>
-                      {/* 💡 獎品名稱放大為 18px，描述與點數高對比大字呈現 */}
                       <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1E293B' }}>{reward.title}</div>
                       {reward.description && <div style={{ fontSize: '14px', color: '#475569', marginTop: '4px' }}>{reward.description}</div>}
                       <div style={{ fontSize: '14px', color: '#64748B', marginTop: '6px' }}>
@@ -623,7 +704,6 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
                 <p style={{ color: '#64748B', margin: 0 }}>找不到符合條件的社員</p>
               </div>
             ) : (
-              /* 💡 統一改用極簡單卡片、細灰色線條分割排版 */
               <div className="custom-card" style={{ maxWidth: '100%', padding: '24px' }}>
                 {filteredStudents.map((s, index) => {
                   const isChecked = selectedStudentIds.includes(s.id);
@@ -660,7 +740,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
           </div>
         )}
 
-        {/* 頁籤六：集體出席加點 QR Code 產生器 */}
+        {/* 頁籤六：即時出席加點 QR Code 產生器 (內文已更正為「即時」) */}
         {activeTab === 'group_add' && (
           <div>
             {!claimId ? (

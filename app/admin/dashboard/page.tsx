@@ -32,7 +32,6 @@ export default async function AdminDashboardPage() {
     .select('*')
     .order('points_required', { ascending: true });
 
-  // 伺服器端直出：撈取全體點數交易明細，並安全進行記憶體高效配對，避免 Supabase 跨表錯誤
   const { data: transactions } = await supabase
     .from('transactions')
     .select('*')
@@ -61,11 +60,21 @@ export default async function AdminDashboardPage() {
     });
   }
 
+  // 💡 預先撈取最新公告
+  const { data: annData } = await supabase
+    .from('announcements')
+    .select('content')
+    .eq('id', 1)
+    .maybeSingle();
+
+  const announcement = annData?.content || '歡迎來到辯論社線上集點系統！';
+
   return (
     <AdminDashboardClient 
       adminName={profile.name} 
       initialRewards={rewards || []} 
       transactions={formattedTransactions}
+      announcement={announcement} // 💡 傳入公告
     />
   );
 }

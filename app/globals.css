@@ -172,3 +172,52 @@ html, body {
 #reader-student__header_message {
   display: none !important;
 }
+/* 追加在最下方：膠囊跑馬燈與滾動動畫樣式 (100% 穩定，不分手機/電腦、不分深色模式) */
+.custom-marquee-container {
+  display: flex !important;
+  align-items: center !important;
+  background-color: #FFFFFF !important;
+  border: 2px solid #CBD5E1 !important;
+  border-radius: 9999px !important; /* 膠囊圓角 */
+  padding: 8px 16px !important;
+  margin-bottom: 24px !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* 鎖死在左側的大聲公圖示 */
+.custom-marquee-icon {
+  color: #0097B2 !important;
+  margin-right: 10px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* 跑馬燈滾動視窗 */
+.custom-marquee-text-wrapper {
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  width: 100% !important;
+  position: relative !important;
+}
+
+/* 跑馬燈無限滾動字體：14px，粗體，色對比極佳 */
+.custom-marquee-text {
+  display: inline-block !important;
+  padding-left: 100% !important;
+  animation: custom-marquee-scroll 18s linear infinite !important;
+  font-size: 14px !important;
+  font-weight: bold !important;
+  color: #1E293B !important;
+}
+
+@keyframes custom-marquee-scroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-100%, 0, 0);
+  }
+}
