@@ -23,7 +23,7 @@ export default function Home() {
         <p className="custom-p" style={{ marginBottom: '32px' }}>
           思無界，辯無限。
           <br />
-          本系統僅授權辯論社社員登入!
+          本系統僅授權辯論社社員登入！
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
           <Link href="/login?role=member" className="custom-btn-primary">
