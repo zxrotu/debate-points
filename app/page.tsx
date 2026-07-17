@@ -11,7 +11,7 @@ export default function Home() {
             width: '100px', 
             height: 'auto', 
             marginTop: '16px', 
-            marginBottom: '20px', 
+            marginBottom: '20px', // 💡 修正：B 必須是大寫！
             display: 'block', 
             marginLeft: 'auto', 
             marginRight: 'auto' 
