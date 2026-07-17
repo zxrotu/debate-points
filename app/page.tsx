@@ -18,12 +18,12 @@ export default function Home() {
           }} 
         />
         <h1 className="custom-h1" style={{ fontSize: '28px', marginBottom: '16px' }}>
-          辯論社線上集點系統
+          辯論社線上系統
         </h1>
         <p className="custom-p" style={{ marginBottom: '32px' }}>
           思無界，辯無限。
           <br />
-          本系統得查看您的「論點」餘額與兌換獎品。
+          登入系統得查看您的論點餘額與兌換獎品。
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
           <Link href="/login?role=member" className="custom-btn-primary">
