@@ -23,7 +23,7 @@ export default function Home() {
         <p className="custom-p" style={{ marginBottom: '32px' }}>
           思無界，辯無限。
           <br />
-          登入系統得查看您的論點餘額與兌換獎品。
+          本系統僅限辯論社社員登入即使用。
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
           <Link href="/login?role=member" className="custom-btn-primary">
