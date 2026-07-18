@@ -1,42 +1,120 @@
-import Link from 'next/link';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { verifyToken } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
+import AdminDashboardClient from './AdminDashboardClient';
 
-export default function Home() {
+export default async function AdminDashboardPage() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('session_token')?.value;
+
+  if (!token) {
+    redirect('/login?role=admin');
+  }
+
+  const payload = await verifyToken(token);
+  if (!payload || payload.role !== 'admin') {
+    redirect('/login?role=admin');
+  }
+
+  const { data: profile, error } = await supabase
+    .from('members')
+    .select('name')
+    .eq('id', payload.id)
+    .single();
+
+  if (error || !profile) {
+    redirect('/login?role=admin');
+  }
+
+  const { data: rewards } = await supabase
+    .from('rewards')
+    .select('*')
+    .order('points_required', { ascending: true });
+
+  const { data: transactions } = await supabase
+    .from('transactions')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  let formattedTransactions: any[] = [];
+  if (transactions && transactions.length > 0) {
+    const memberIds = Array.from(new Set(transactions.map((t: any) => t.member_id)));
+    const { data: members } = await supabase
+      .from('members')
+      .select('id, name, username')
+      .in('id', memberIds);
+
+    const memberMap = new Map(members?.map((m: any) => [m.id, m]) || []);
+    
+    formattedTransactions = transactions.map((t: any) => {
+      const m = memberMap.get(t.member_id) || { name: '未知學員', username: 'unknown' };
+      return {
+        id: t.id,
+        amount: t.amount,
+        reason: t.reason,
+        created_at: t.created_at,
+        student_name: m.name,
+        student_username: m.username
+      };
+    });
+  }
+
+  // 防禦性公告查詢
+  let announcement = '';
+  try {
+    const { data: annData, error: annError } = await supabase
+      .from('announcements')
+      .select('content')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (!annError && annData) {
+      announcement = annData.content || '';
+    }
+  } catch (err) {
+    console.error(err);
+  }
+
+  // 💡 預先撈取目前所有待審核的線上申請 (傳入 admin 面板)
+  let initialRedeemRequests: any[] = [];
+  try {
+    const { data, error: reqErr } = await supabase
+      .from('redemptions')
+      .select(`
+        id,
+        status,
+        created_at,
+        members ( id, name, username, points ),
+        rewards ( id, title, points_required )
+      `)
+      .eq('status', 'pending');
+
+    if (!reqErr && data) {
+      initialRedeemRequests = data.map((item: any) => ({
+        id: item.id,
+        status: item.status,
+        created_at: item.created_at,
+        student_id: item.members.id,
+        student_name: item.members.name,
+        student_username: item.members.username,
+        student_points: item.members.points,
+        reward_id: item.rewards.id,
+        reward_title: item.rewards.title,
+        points_required: item.rewards.points_required
+      }));
+    }
+  } catch (err) {
+    console.error(err);
+  }
+
   return (
-    <div className="page-container">
-      <div className="custom-card">
-        <img 
-          src="/logo.png" 
-          alt="辯論社 Logo" 
-          style={{ 
-            width: '100px', 
-            height: 'auto', 
-            marginTop: '16px', 
-            marginBottom: '20px', // 💡 修正：B 必須是大寫！
-            display: 'block', 
-            marginLeft: 'auto', 
-            marginRight: 'auto' 
-          }} 
-        />
-        <h1 className="custom-h1" style={{ fontSize: '28px', marginBottom: '16px' }}>
-          辯論社線上系統
-        </h1>
-        <p className="custom-p" style={{ marginBottom: '32px' }}>
-          思無界，辯無限。
-          <br />
-          本系統僅授權辯論社社員登入！
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
-          <Link href="/login?role=member" className="custom-btn-primary">
-            社員登入
-          </Link>
-          <Link href="/login?role=admin" className="custom-btn-secondary">
-            管理員登入
-          </Link>
-        </div>
-        <div style={{ fontSize: '16px', color: '#64748B', marginTop: '16px', textAlign: 'center' }}>
-          @ptdtdb_115
-        </div>
-      </div>
-    </div>
+    <AdminDashboardClient 
+      adminName={profile.name} 
+      initialRewards={rewards || []} 
+      transactions={formattedTransactions}
+      announcement={announcement}
+      initialRedeemRequests={initialRedeemRequests} // 💡 傳入
+    />
   );
 }
