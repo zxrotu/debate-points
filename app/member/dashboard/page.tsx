@@ -2,6 +2,8 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { verifyToken } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
+// 💡 補上遺漏的 Client 元件匯入
+import MemberDashboardClient from './MemberDashboardClient';
 
 export default async function MemberDashboardPage() {
   const cookieStore = await cookies();

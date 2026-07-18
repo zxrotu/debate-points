@@ -331,6 +331,41 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
     }
   };
 
+  // 💡 新增：管理員登出邏輯
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      router.push('/login?role=admin');
+    }
+  };
+
+  // 💡 新增：「一鍵全選」與「取消全選」邏輯
+  const handleToggleSelectAll = () => {
+    const filteredIds = filteredStudents.map(s => s.id);
+    const isAllSelected = filteredIds.every(id => selectedStudentIds.includes(id));
+
+    if (isAllSelected) {
+      setSelectedStudentIds(prev => prev.filter(id => !filteredIds.includes(id)));
+    } else {
+      setSelectedStudentIds(prev => {
+        const uniqueIds = new Set([...prev, ...filteredIds]);
+        return Array.from(uniqueIds);
+      });
+    }
+  };
+
+  // 💡 新增：「單選學員」切換邏輯
+  const handleToggleSelectStudent = (studentId: string) => {
+    setSelectedStudentIds(prev => 
+      prev.includes(studentId) 
+        ? prev.filter(id => id !== studentId) 
+        : [...prev, studentId]
+    );
+  };
+
   const formatDate = (dateStr: string) => {
     try {
       const datePart = dateStr.substring(0, 10);
@@ -753,7 +788,7 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', padding: '0 4px' }}>
               <h2 className="custom-h2" style={{ margin: 0, fontSize: '18px' }}>選擇學員名單</h2>
               <button onClick={handleToggleSelectAll} className="custom-btn-logout" style={{ fontSize: '12px', padding: '4px 12px' }}>
-                {filteredStudents.every(id => selectedStudentIds.includes(id.id)) ? '取消全選' : '一鍵全選'}
+                {filteredStudents.every(s => selectedStudentIds.includes(s.id)) ? '取消全選' : '一鍵全選'}
               </button>
             </div>
 
