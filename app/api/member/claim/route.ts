@@ -8,93 +8,57 @@ export async function POST(request: Request) {
     const cookieStore = await cookies();
     const token = cookieStore.get('session_token')?.value;
 
-    // 1. 驗證是否登入
     if (!token) {
-      return NextResponse.json({ error: 'NOT_LOGGED_IN' }, { status: 401 });
+      return NextResponse.json({ error: '未登入' }, { status: 401 });
     }
 
     const payload = await verifyToken(token);
     if (!payload || payload.role !== 'member') {
-      return NextResponse.json({ error: 'NOT_LOGGED_IN' }, { status: 401 });
+      return NextResponse.json({ error: '權限不足' }, { status: 401 });
     }
 
-    const { claim_id } = await request.json();
-    if (!claim_id) {
-      return NextResponse.json({ error: '活動代碼無效' }, { status: 400 });
+    const { reward_id } = await request.json();
+
+    // 1. 檢查獎品是否存在
+    const { data: reward } = await supabase.from('rewards').select('*').eq('id', reward_id).single();
+    if (!reward) {
+      return NextResponse.json({ error: '找不到該獎品' }, { status: 404 });
     }
 
-    // 2. 查詢該活動憑證
-    const { data: claim, error: claimError } = await supabase
-      .from('claims')
+    // 2. 檢查是否已經有正在審核中的相同申請，防範重複點擊
+    const { data: existing } = await supabase
+      .from('redemptions')
       .select('*')
-      .eq('id', claim_id)
-      .single();
-
-    if (claimError || !claim) {
-      return NextResponse.json({ error: '找不到該加點活動' }, { status: 404 });
-    }
-
-    // 3. 檢查是否已經過期
-    const expiresTime = new Date(claim.expires_at).getTime();
-    if (Date.now() > expiresTime) {
-      return NextResponse.json({ error: 'EXPIRED' }, { status: 410 });
-    }
-
-    // 4. 檢查該學生是否已經重複領取過
-    const { data: log, error: logError } = await supabase
-      .from('claim_logs')
-      .select('*')
-      .eq('claim_id', claim_id)
       .eq('member_id', payload.id)
+      .eq('reward_id', reward_id)
+      .eq('status', 'pending')
       .maybeSingle();
 
-    if (log) {
-      return NextResponse.json({ error: 'ALREADY_CLAIMED', title: claim.title, points: claim.points }, { status: 400 });
+    if (existing) {
+      return NextResponse.json({ error: '已申請過此獎品，請耐心等待審核' }, { status: 400 });
     }
 
-    // 5. 順利通過驗證，開始寫入領取紀錄
-    const { error: insertLogError } = await supabase
-      .from('claim_logs')
-      .insert({
-        claim_id: claim_id,
-        member_id: payload.id
-      });
+    // 3. 檢查點數
+    const { data: member } = await supabase.from('members').select('points').eq('id', payload.id).single();
+    if (!member) {
+      return NextResponse.json({ error: '找不到社員資料' }, { status: 404 });
+    }
 
-    if (insertLogError) throw insertLogError;
+    if (member.points < reward.points_required) {
+      return NextResponse.json({ error: '您的點數不足' }, { status: 400 });
+    }
 
-    // 6. 為學生加上點數
-    const { data: member, error: memberError } = await supabase
-      .from('members')
-      .select('name, points')
-      .eq('id', payload.id)
-      .single();
-
-    if (memberError || !member) throw memberError;
-
-    const newPoints = member.points + claim.points;
-    const { error: updateError } = await supabase
-      .from('members')
-      .update({ points: newPoints })
-      .eq('id', payload.id);
-
-    if (updateError) throw updateError;
-
-    // 7. 寫入交易明細
-    await supabase.from('transactions').insert({
+    // 4. 寫入兌換申請表 (狀態為 pending)
+    const { error: insertError } = await supabase.from('redemptions').insert({
       member_id: payload.id,
-      amount: claim.points,
-      reason: `掃碼領取：${claim.title}`
+      reward_id: reward_id,
+      status: 'pending'
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      student_name: member.name, 
-      title: claim.title, 
-      points_added: claim.points, 
-      new_points: newPoints 
-    });
+    if (insertError) throw insertError;
 
-  } catch (err: any) {
-    return NextResponse.json({ error: '系統錯誤，領取失敗' }, { status: 500 });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    return NextResponse.json({ error: '系統錯誤，申請失敗' }, { status: 500 });
   }
 }

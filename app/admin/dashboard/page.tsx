@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { verifyToken } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import AdminDashboardClient from './AdminDashboardClient'; // 💡 補齊第 5 行：精準導入管理員 Client 元件
+import AdminDashboardClient from './AdminDashboardClient';
 
 export default async function AdminDashboardPage() {
   const cookieStore = await cookies();
@@ -60,7 +60,7 @@ export default async function AdminDashboardPage() {
     });
   }
 
-  // 防禦性容錯查詢：即使資料庫沒建 announcements 表也絕對不崩潰
+  // 防禦性公告查詢
   let announcement = '';
   try {
     const { data: annData, error: annError } = await supabase
@@ -73,7 +73,39 @@ export default async function AdminDashboardPage() {
       announcement = annData.content || '';
     }
   } catch (err) {
-    console.error("Announcements table not ready yet:", err);
+    console.error(err);
+  }
+
+  // 💡 預先撈取目前所有待審核的線上申請 (傳入 admin 面板)
+  let initialRedeemRequests: any[] = [];
+  try {
+    const { data, error: reqErr } = await supabase
+      .from('redemptions')
+      .select(`
+        id,
+        status,
+        created_at,
+        members ( id, name, username, points ),
+        rewards ( id, title, points_required )
+      `)
+      .eq('status', 'pending');
+
+    if (!reqErr && data) {
+      initialRedeemRequests = data.map((item: any) => ({
+        id: item.id,
+        status: item.status,
+        created_at: item.created_at,
+        student_id: item.members.id,
+        student_name: item.members.name,
+        student_username: item.members.username,
+        student_points: item.members.points,
+        reward_id: item.rewards.id,
+        reward_title: item.rewards.title,
+        points_required: item.rewards.points_required
+      }));
+    }
+  } catch (err) {
+    console.error(err);
   }
 
   return (
@@ -82,6 +114,7 @@ export default async function AdminDashboardPage() {
       initialRewards={rewards || []} 
       transactions={formattedTransactions}
       announcement={announcement}
+      initialRedeemRequests={initialRedeemRequests} // 💡 傳入
     />
   );
 }

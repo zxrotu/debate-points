@@ -2,7 +2,6 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { verifyToken } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import MemberDashboardClient from './MemberDashboardClient';
 
 export default async function MemberDashboardPage() {
   const cookieStore = await cookies();
@@ -35,7 +34,23 @@ export default async function MemberDashboardPage() {
     .eq('member_id', payload.id)
     .order('created_at', { ascending: false });
 
-  // 💡 防禦性容錯查詢：即使資料庫沒建 announcements 表也絕對不崩潰
+  // 💡 讀取該學員目前正在審核中（pending）的所有獎品 ID 清單
+  let pendingRewardIds: number[] = [];
+  try {
+    const { data: pendingRequests } = await supabase
+      .from('redemptions')
+      .select('reward_id')
+      .eq('member_id', payload.id)
+      .eq('status', 'pending');
+
+    if (pendingRequests) {
+      pendingRewardIds = pendingRequests.map((r: any) => r.reward_id);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+
+  // 防禦性公告查詢
   let announcement = '';
   try {
     const { data: annData, error: annError } = await supabase
@@ -57,6 +72,7 @@ export default async function MemberDashboardPage() {
       rewards={rewards || []} 
       transactions={transactions || []}
       announcement={announcement}
+      pendingRewardIds={pendingRewardIds} // 💡 傳入審核中清單
     />
   );
 }
