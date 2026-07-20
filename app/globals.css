@@ -1,65 +1,219 @@
-/* 追加在原本的最下方：完美圓形功能按鈕與固定尺寸兌換按鈕 */
+@font-face {
+  font-family: 'Iansui';
+  src: url('/Iansui-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 
-/* 管理端頂部三大按鈕完美圓形化 */
-.custom-btn-circle {
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  background-color: #FAF3E8 !important;
+  color: #000000 !important;
+  font-family: 'Iansui', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  box-sizing: border-box;
+  font-size: 16px !important;
+  line-height: 1.6 !important;
+}
+
+.page-container {
   display: flex !important;
+  flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 36px !important;
-  height: 36px !important;
-  border-radius: 50% !important; /* 完美圓形 */
+  min-height: 100vh !important;
+  background-color: #FAF3E8 !important;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+}
+
+.content-wrapper {
+  max-width: 600px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+}
+
+.custom-card {
   background-color: #FFFFFF !important;
-  color: #0097B2 !important;
-  border: 2px solid #0097B2 !important;
-  cursor: pointer !important;
-  padding: 0 !important;
-  transition: background-color 0.2s !important;
-  flex-shrink: 0 !important;
+  color: #000000 !important;
+  border: 2px solid #CBD5E1 !important;
+  border-radius: 24px !important;
+  /* 💡 頂部與底部為最適中的 28px，左右為 24px，兼顧精緻度與版面呼吸感 */
+  padding: 28px 24px !important; 
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05) !important;
+  width: 100% !important;
+  max-width: 400px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
-.custom-btn-circle:hover {
-  background-color: #F1FAFC !important;
+.custom-h1 {
+  font-size: 32px !important;
+  font-weight: 800 !important;
+  line-height: 1.4 !important;
+  color: #1E293B !important;
+  margin-top: 0 !important;
+  margin-bottom: 16px !important;
+  text-align: center !important;
 }
 
-/* 學生端兌換按鈕：尺寸固定為 80px * 36px */
-.btn-redeem {
-  width: 80px !important;
-  height: 36px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  border-radius: 9999px !important; /* 完美膠囊圓角 */
+.custom-h2 {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+  color: #1E293B !important;
+  margin-bottom: 12px !important;
+}
+
+.custom-p {
+  font-size: 16px !important;
+  line-height: 1.6 !important;
+  color: #475569 !important;
+  margin-bottom: 24px !important;
+  text-align: center !important;
+}
+
+.custom-field-label {
+  display: block !important;
+  font-size: 14px !important;
   font-weight: bold !important;
-  cursor: pointer !important;
-  border: none !important;
-  transition: all 0.2s !important;
-  box-shadow: 0 2px 4px rgba(0, 151, 178, 0.15) !important;
+  color: #475569 !important;
+  margin-bottom: 8px !important;
+  padding-left: 8px !important;
 }
 
-/* 狀態 A：可兌換 */
-.btn-redeem-active {
+.custom-input {
+  width: 100% !important;
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border: 2px solid #94A3B8 !important;
+  border-radius: 12px !important;
+  padding: 14px 18px !important;
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+  box-sizing: border-box !important;
+  margin-bottom: 24px !important;
+}
+
+.custom-btn-primary {
+  display: block !important;
+  width: 100% !important;
   background-color: #0097B2 !important;
   color: #FFFFFF !important;
+  font-weight: bold !important;
+  font-size: 16px !important;
+  padding: 14px 24px !important;
+  border-radius: 9999px !important;
+  border: none !important;
+  cursor: pointer !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 4px 6px rgba(0, 151, 178, 0.2) !important;
+  text-decoration: none !important;
 }
 
-.btn-redeem-active:hover {
+.custom-btn-primary:hover {
   background-color: #007A8F !important;
 }
 
-/* 狀態 B：已申請 (字體變小，但按鈕大小與寬高絕對不變) */
-.btn-redeem-pending {
-  background-color: #E2E8F0 !important;
-  color: #64748B !important;
-  font-size: 13px !important; /* 💡 字體變小，極致精緻 */
-  cursor: not-allowed !important;
-  box-shadow: none !important;
+.custom-btn-secondary {
+  display: block !important;
+  width: 100% !important;
+  background-color: #FFFFFF !important;
+  color: #0097B2 !important;
+  font-weight: bold !important;
+  font-size: 16px !important;
+  padding: 14px 24px !important;
+  border-radius: 9999px !important;
+  border: 2px solid #0097B2 !important;
+  cursor: pointer !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+  text-decoration: none !important;
 }
 
-/* 狀態 C：點數不足 */
-.btn-redeem-disabled {
-  background-color: #CBD5E1 !important;
-  color: #FFFFFF !important;
-  font-size: 13px !important;
-  cursor: not-allowed !important;
-  box-shadow: none !important;
+.custom-btn-secondary:hover {
+  background-color: #F1FAFC !important;
 }
+
+.custom-btn-logout {
+  background-color: #FFFFFF !important;
+  color: #0097B2 !important;
+  font-weight: bold !important;
+  font-size: 14px !important;
+  padding: 6px 14px !important;
+  border-radius: 9999px !important;
+  border: 2px solid #0097B2 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: background-color 0.2s !important;
+}
+
+.custom-btn-logout:hover {
+  background-color: #F1FAFC !important;
+}
+
+/* 跑馬燈外框與字體設定 */
+.custom-marquee-container {
+  display: flex !important;
+  align-items: center !important;
+  background-color: #FFFFFF !important;
+  border: 2px solid #CBD5E1 !important;
+  border-radius: 9999px !important;
+  padding: 8px 16px !important;
+  margin-bottom: 24px !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.custom-marquee-icon {
+  color: #0097B2 !important;
+  margin-right: 10px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.custom-marquee-text-wrapper {
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  width: 100% !important;
+  position: relative !important;
+}
+
+.custom-marquee-text {
+  display: inline-block !important;
+  padding-left: 100% !important;
+  animation: custom-marquee-scroll 18s linear infinite !important;
+  font-size: 14px !important;
+  font-weight: bold !important;
+  color: #1E293B !important;
+}
+
+@keyframes custom-marquee-scroll {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-100%, 0, 0); }
+}
+
+/* 隱藏雙端相機不必要的 UI 選擇項目 */
+#reader__camera_selection, 
+#reader__dashboard_section_swaplink,
+#reader__header_message,
+#reader-student__camera_selection, 
+#reader-student__dashboard_section_swaplink,
+#reader-student__header_message {
+  display: none !important;
+}
+

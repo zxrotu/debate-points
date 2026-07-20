@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { verifyToken } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import AdminDashboardClient from './AdminDashboardClient';
+import AdminDashboardClient from './AdminDashboardClient'; // 💡 補齊第 5 行：精準導入管理員 Client 元件
 
 export default async function AdminDashboardPage() {
   const cookieStore = await cookies();
@@ -27,14 +27,24 @@ export default async function AdminDashboardPage() {
     redirect('/login?role=admin');
   }
 
-  const { data: rewards } = await supabase.from('rewards').select('*').order('points_required', { ascending: true });
+  const { data: rewards } = await supabase
+    .from('rewards')
+    .select('*')
+    .order('points_required', { ascending: true });
 
-  const { data: transactions } = await supabase.from('transactions').select('*').order('created_at', { ascending: false });
+  const { data: transactions } = await supabase
+    .from('transactions')
+    .select('*')
+    .order('created_at', { ascending: false });
 
   let formattedTransactions: any[] = [];
   if (transactions && transactions.length > 0) {
     const memberIds = Array.from(new Set(transactions.map((t: any) => t.member_id)));
-    const { data: members } = await supabase.from('members').select('id, name, username').in('id', memberIds);
+    const { data: members } = await supabase
+      .from('members')
+      .select('id, name, username')
+      .in('id', memberIds);
+
     const memberMap = new Map(members?.map((m: any) => [m.id, m]) || []);
     
     formattedTransactions = transactions.map((t: any) => {
@@ -50,30 +60,21 @@ export default async function AdminDashboardPage() {
     });
   }
 
+  // 防禦性容錯查詢：即使資料庫沒建 announcements 表也絕對不崩潰
   let announcement = '';
   try {
-    const { data: annData } = await supabase.from('announcements').select('content').eq('id', 1).maybeSingle();
-    announcement = annData?.content || '';
-  } catch (err) {}
+    const { data: annData, error: annError } = await supabase
+      .from('announcements')
+      .select('content')
+      .eq('id', 1)
+      .maybeSingle();
 
-  let initialRedeemRequests: any[] = [];
-  try {
-    const { data } = await supabase.from('redemptions').select(`id, status, created_at, members ( id, name, username, points ), rewards ( id, title, points_required )`).eq('status', 'pending');
-    if (data) {
-      initialRedeemRequests = data.map((item: any) => ({
-        id: item.id,
-        status: item.status,
-        created_at: item.created_at,
-        student_id: item.members.id,
-        student_name: item.members.name,
-        student_username: item.members.username,
-        student_points: item.members.points,
-        reward_id: item.rewards.id,
-        reward_title: item.rewards.title,
-        points_required: item.rewards.points_required
-      }));
+    if (!annError && annData) {
+      announcement = annData.content || '';
     }
-  } catch (err) {}
+  } catch (err) {
+    console.error("Announcements table not ready yet:", err);
+  }
 
   return (
     <AdminDashboardClient 
@@ -81,7 +82,7 @@ export default async function AdminDashboardPage() {
       initialRewards={rewards || []} 
       transactions={formattedTransactions}
       announcement={announcement}
-      initialRedeemRequests={initialRedeemRequests}
     />
   );
 }
+
