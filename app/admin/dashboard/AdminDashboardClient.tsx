@@ -15,7 +15,6 @@ interface AdminDashboardClientProps {
 
 export default function AdminDashboardClient({ adminName, initialRewards, transactions, announcement, initialRedeemRequests }: AdminDashboardClientProps) {
   const router = useRouter();
-  
   const [activeTab, setActiveTab] = useState<'scan' | 'manual' | 'students' | 'add_reward' | 'batch_add' | 'group_add'>('scan');
   const [step, setStep] = useState<'scan_or_search' | 'student_confirm' | 'points_adjust'>('scan_or_search');
   const [student, setStudent] = useState<any>(null);
@@ -25,83 +24,33 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
   
   const [annContent, setAnnContent] = useState(announcement);
   const [editAnnContent, setEditAnnContent] = useState(announcement);
-  const [adjustMode, setAdjustMode] = useState<'general' | 'redeem'>('general');
-  const [pointsAction, setPointsAction] = useState<'add' | 'deduct'>('add');
-  const [amount, setAmount] = useState<number>(5);
-  const [reason, setReason] = useState('參與社課加點');
-  
   const [rewardsList, setRewardsList] = useState<any[]>(initialRewards);
-  const [selectedRewardId, setSelectedRewardId] = useState<number>(initialRewards[0]?.id || 0);
-  const [redeemQuantity, setRedeemQuantity] = useState<number>(1);
-  const [allStudents, setAllStudents] = useState<any[]>([]);
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [newRewardTitle, setNewRewardTitle] = useState('');
-  const [newRewardPoints, setNewRewardPoints] = useState<number>(20);
-  const [newRewardDesc, setNewRewardDesc] = useState('');
-  const [batchAmount, setBatchAmount] = useState<number>(5);
-  const [batchReason, setBatchReason] = useState('參與社課加點');
-  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
-  const [groupTitle, setGroupTitle] = useState('社課出席加點');
-  const [groupPoints, setGroupPoints] = useState<number>(5);
-  const [groupDuration, setGroupDuration] = useState<number>(5);
-  const [claimId, setClaimId] = useState('');
-  const [expiresAt, setExpiresAt] = useState<string | null>(null);
-  const [countdownText, setCountdownText] = useState('');
-  const [manualUsername, setManualUsername] = useState('');
-  const [message, setMessage] = useState({ text: '', type: '' });
-  const [loading, setLoading] = useState(false);
   const [redeemRequests, setRedeemRequests] = useState<any[]>(initialRedeemRequests);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ text: '', type: '' });
 
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/');
-  };
-
-  const handleFetchStudent = async (payload: { qr_token?: string; username?: string }) => {
+  // 封裝後的登出與處理函數
+  const handleLogout = async () => { await fetch('/api/auth/logout', { method: 'POST' }); router.push('/'); };
+  const fetchRedeemRequests = async () => {
     setLoading(true);
-    const res = await fetch('/api/admin/student-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const res = await fetch('/api/admin/redeem-requests');
     const data = await res.json();
     setLoading(false);
-    if (res.ok) { setStudent(data.student); setStep('student_confirm'); } else setMessage({ text: data.error, type: 'error' });
-  };
-
-  const handlePointsActionSubmit = async () => {
-    setLoading(true);
-    const finalAmount = pointsAction === 'add' ? amount : -amount;
-    const res = await fetch('/api/admin/points', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: student.id, username: student.username, qr_token: student.qr_token, amount: finalAmount, reason }) });
-    const data = await res.json();
-    setLoading(false);
-    if (res.ok) { setMessage({ text: '操作成功', type: 'success' }); setStudent(null); setStep('scan_or_search'); }
+    if (res.ok) setRedeemRequests(data.requests);
   };
 
   const handleRedeemAudit = async (requestId: number, action: 'approve' | 'reject') => {
     setLoading(true);
-    await fetch('/api/admin/redeem-requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ request_id: requestId, action }) });
+    await fetch('/api/admin/redeem-requests', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ request_id: requestId, action }) });
     setLoading(false);
-    router.refresh();
+    fetchRedeemRequests();
   };
-
-  const handleUpdateAnnouncement = async () => {
-    setLoading(true);
-    const res = await fetch('/api/admin/announcement', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: editAnnContent }) });
-    setLoading(false);
-    if (res.ok) { setAnnContent(editAnnContent); setShowAnnModal(false); }
-  };
-
-  const handleAddRewardSubmit = async (e: React.FormEvent) => { e.preventDefault(); /* ...簡化邏輯 */ };
-  const handleDeleteReward = async (id: number) => { /* ...簡化邏輯 */ };
-  const handleBatchPointsSubmit = async () => { /* ...邏輯 */ };
-  const handleCreateGroupClaim = async () => { /* ...邏輯 */ };
-  const handleToggleSelectStudent = (id: string) => setSelectedStudentIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-  const handleToggleSelectAll = () => { /* ...邏輯 */ };
-  const formatDate = (d: string) => d.substring(0, 10);
-  const fetchStudents = async () => { /* ...邏輯 */ };
 
   return (
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '16px', boxSizing: 'border-box' }}>
-      <div className="content-wrapper" style={{ width: '100%', maxWidth: '500px', margin: '0 auto' }}>
+      <div className="content-wrapper" style={{ maxWidth: '500px', margin: '0 auto' }}>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
-          <span style={{ fontSize: '22px', fontWeight: 'bold' }}>Hello! {adminName}</span>
+          <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>Hello! {adminName}</span>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button onClick={() => { setShowRedeemModal(!showRedeemModal); setShowHistory(false); setShowAnnModal(false); }} className="custom-btn-circle"><Gift size={16} /></button>
             <button onClick={() => { setShowHistory(!showHistory); setShowAnnModal(false); setShowRedeemModal(false); }} className="custom-btn-circle"><Telescope size={16} /></button>
@@ -109,8 +58,35 @@ export default function AdminDashboardClient({ adminName, initialRewards, transa
             <button onClick={handleLogout} className="custom-btn-logout">登出</button>
           </div>
         </header>
-        {/* 其他內容同前，保持此結構即可 */}
-        <p>系統已修復，請執行 git add . && git commit -m "fix: final polish" && git push</p>
+
+        {/* 頁籤按鈕 (保持 3+3 排列) */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+          <button onClick={() => setActiveTab('scan')} className={activeTab === 'scan' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px' }}>掃描條碼</button>
+          <button onClick={() => setActiveTab('manual')} className={activeTab === 'manual' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px' }}>輸入帳號</button>
+          <button onClick={() => setActiveTab('students')} className={activeTab === 'students' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px' }}>帳號一覽</button>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+          <button onClick={() => setActiveTab('add_reward')} className={activeTab === 'add_reward' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px' }}>新增獎品</button>
+          <button onClick={() => setActiveTab('batch_add')} className={activeTab === 'batch_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px' }}>勾選加點</button>
+          <button onClick={() => setActiveTab('group_add')} className={activeTab === 'group_add' ? 'custom-btn-primary' : 'custom-btn-secondary'} style={{ flex: 1, padding: '10px 2px', fontSize: '12px' }}>即時加點</button>
+        </div>
+
+        {/* 審核頁面區塊 */}
+        {showRedeemModal && (
+          <div className="custom-card" style={{ marginBottom: '24px' }}>
+             <h2 className="custom-h2">獎品兌換申請</h2>
+             {redeemRequests.map(req => (
+               <div key={req.id} style={{ borderBottom: '1px solid #E2E8F0', padding: '12px 0' }}>
+                 <div>{req.student_name} 申請 {req.reward_title}</div>
+                 <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                   <button onClick={() => handleRedeemAudit(req.id, 'approve')} className="custom-btn-primary" style={{ padding: '4px 8px' }}>同意</button>
+                   <button onClick={() => handleRedeemAudit(req.id, 'reject')} className="custom-btn-secondary" style={{ padding: '4px 8px' }}>拒絕</button>
+                 </div>
+               </div>
+             ))}
+             <button onClick={() => setShowRedeemModal(false)} className="custom-btn-primary" style={{ marginTop: '16px' }}>返回首頁</button>
+          </div>
+        )}
       </div>
     </div>
   );
