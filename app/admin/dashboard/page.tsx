@@ -17,6 +17,7 @@ export default async function AdminDashboardPage() {
     redirect('/login?role=admin');
   }
 
+  // 獲取管理員姓名
   const { data: profile, error } = await supabase
     .from('members')
     .select('name')
@@ -37,6 +38,7 @@ export default async function AdminDashboardPage() {
     .select('*')
     .order('created_at', { ascending: false });
 
+  // 處理交易紀錄格式
   let formattedTransactions: any[] = [];
   if (transactions && transactions.length > 0) {
     const memberIds = Array.from(new Set(transactions.map((t: any) => t.member_id)));
@@ -60,37 +62,32 @@ export default async function AdminDashboardPage() {
     });
   }
 
-  // 防禦性公告查詢
+  // 獲取公告
   let announcement = '';
   try {
-    const { data: annData, error: annError } = await supabase
+    const { data: annData } = await supabase
       .from('announcements')
       .select('content')
       .eq('id', 1)
       .maybeSingle();
-
-    if (!annError && annData) {
-      announcement = annData.content || '';
-    }
+    announcement = annData?.content || '';
   } catch (err) {
     console.error(err);
   }
 
-  // 💡 預先撈取目前所有待審核的線上申請 (傳入 admin 面板)
+  // 獲取線上兌換申請
   let initialRedeemRequests: any[] = [];
   try {
-    const { data, error: reqErr } = await supabase
+    const { data } = await supabase
       .from('redemptions')
       .select(`
-        id,
-        status,
-        created_at,
+        id, status, created_at,
         members ( id, name, username, points ),
         rewards ( id, title, points_required )
       `)
       .eq('status', 'pending');
 
-    if (!reqErr && data) {
+    if (data) {
       initialRedeemRequests = data.map((item: any) => ({
         id: item.id,
         status: item.status,
@@ -114,7 +111,7 @@ export default async function AdminDashboardPage() {
       initialRewards={rewards || []} 
       transactions={formattedTransactions}
       announcement={announcement}
-      initialRedeemRequests={initialRedeemRequests} // 💡 傳入
+      initialRedeemRequests={initialRedeemRequests}
     />
   );
 }
