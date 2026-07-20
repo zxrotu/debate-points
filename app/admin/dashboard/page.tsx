@@ -17,7 +17,6 @@ export default async function AdminDashboardPage() {
     redirect('/login?role=admin');
   }
 
-  // 獲取管理員姓名
   const { data: profile, error } = await supabase
     .from('members')
     .select('name')
@@ -28,25 +27,14 @@ export default async function AdminDashboardPage() {
     redirect('/login?role=admin');
   }
 
-  const { data: rewards } = await supabase
-    .from('rewards')
-    .select('*')
-    .order('points_required', { ascending: true });
+  const { data: rewards } = await supabase.from('rewards').select('*').order('points_required', { ascending: true });
 
-  const { data: transactions } = await supabase
-    .from('transactions')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const { data: transactions } = await supabase.from('transactions').select('*').order('created_at', { ascending: false });
 
-  // 處理交易紀錄格式
   let formattedTransactions: any[] = [];
   if (transactions && transactions.length > 0) {
     const memberIds = Array.from(new Set(transactions.map((t: any) => t.member_id)));
-    const { data: members } = await supabase
-      .from('members')
-      .select('id, name, username')
-      .in('id', memberIds);
-
+    const { data: members } = await supabase.from('members').select('id, name, username').in('id', memberIds);
     const memberMap = new Map(members?.map((m: any) => [m.id, m]) || []);
     
     formattedTransactions = transactions.map((t: any) => {
@@ -62,31 +50,15 @@ export default async function AdminDashboardPage() {
     });
   }
 
-  // 獲取公告
   let announcement = '';
   try {
-    const { data: annData } = await supabase
-      .from('announcements')
-      .select('content')
-      .eq('id', 1)
-      .maybeSingle();
+    const { data: annData } = await supabase.from('announcements').select('content').eq('id', 1).maybeSingle();
     announcement = annData?.content || '';
-  } catch (err) {
-    console.error(err);
-  }
+  } catch (err) {}
 
-  // 獲取線上兌換申請
   let initialRedeemRequests: any[] = [];
   try {
-    const { data } = await supabase
-      .from('redemptions')
-      .select(`
-        id, status, created_at,
-        members ( id, name, username, points ),
-        rewards ( id, title, points_required )
-      `)
-      .eq('status', 'pending');
-
+    const { data } = await supabase.from('redemptions').select(`id, status, created_at, members ( id, name, username, points ), rewards ( id, title, points_required )`).eq('status', 'pending');
     if (data) {
       initialRedeemRequests = data.map((item: any) => ({
         id: item.id,
@@ -101,9 +73,7 @@ export default async function AdminDashboardPage() {
         points_required: item.rewards.points_required
       }));
     }
-  } catch (err) {
-    console.error(err);
-  }
+  } catch (err) {}
 
   return (
     <AdminDashboardClient 

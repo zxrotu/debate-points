@@ -10,7 +10,7 @@ interface MemberDashboardClientProps {
   rewards: any[];
   transactions: any[];
   announcement: string;
-  pendingRewardIds: number[]; // 接收審核中的獎品 ID
+  pendingRewardIds: number[];
 }
 
 export default function MemberDashboardClient({ profile, rewards, transactions, announcement, pendingRewardIds }: MemberDashboardClientProps) {
@@ -18,8 +18,6 @@ export default function MemberDashboardClient({ profile, rewards, transactions, 
   const [showScanner, setShowScanner] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
-  
-  // 學生端狀態
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -28,270 +26,114 @@ export default function MemberDashboardClient({ profile, rewards, transactions, 
     router.push('/');
   };
 
-  useEffect(() => {
-    let scanner: Html5QrcodeScanner | null = null;
-
-    if (showScanner) {
-      scanner = new Html5QrcodeScanner(
-        'reader-student',
-        { 
-          fps: 10, 
-          qrbox: { width: 250, height: 250 },
-          supportedScanTypes: [0],
-          videoConstraints: {
-            facingMode: "environment"
-          }
-        },
-        false
-      );
-
-      scanner.render(
-        async (decodedText) => {
-          if (scanner) {
-            scanner.clear().catch(err => console.error(err));
-          }
-          setShowScanner(false);
-
-          let claimId = decodedText;
-          if (decodedText.includes('?id=')) {
-            const urlParts = decodedText.split('?id=');
-            claimId = urlParts[1];
-          }
-
-          setScanMessage({ text: '安全碼驗證中...', type: 'info' });
-
-          try {
-            const res = await fetch('/api/member/claim', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ claim_id: claimId }),
-            });
-            const data = await res.json();
-
-            if (res.ok) {
-              setScanMessage({ 
-                text: `成功領取【${data.title}】的 ${data.points_added} 點！目前餘額：${data.new_points} 點`, 
-                type: 'success' 
-              });
-              router.refresh();
-            } else {
-              if (data.error === 'ALREADY_CLAIMED') {
-                setScanMessage({ text: `您先前已領取過【${data.title}】囉，請勿重複掃描`, type: 'error' });
-              } else {
-                setScanMessage({ text: '領取失敗！此二維碼已過期或活動不存在', type: 'error' });
-              }
-            }
-          } catch (err) {
-            setScanMessage({ text: '網路連線異常，領取失敗', type: 'error' });
-          }
-        },
-        (error) => {}
-      );
-    }
-
-    return () => {
-      if (scanner) {
-        scanner.clear().catch(err => console.error("Scanner clear error", err));
-      }
-    };
-  }, [showScanner]);
-
-  // 學生發起兌換申請
   const handleRedeemRequestSubmit = async (rewardId: number) => {
     setLoadingId(rewardId);
     setSuccessMsg('');
     try {
-      const res = await fetch('/api/member/redeem', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reward_id: rewardId }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setSuccessMsg('已成功發送兌換申請，請等待管理員核准！');
-        router.refresh(); // 刷新重新取得 pending 狀態
-      } else {
-        alert(data.error || '申請失敗');
-      }
-    } catch (err) {
-      alert('連線異常，申請失敗');
+      const res = await fetch('/api/member/redeem', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reward_id: rewardId }) });
+      if (res.ok) { setSuccessMsg('申請已送出！'); router.refresh(); }
     } finally {
       setLoadingId(null);
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    try {
-      const datePart = dateStr.substring(0, 10);
-      const timePart = dateStr.substring(11, 16);
-      return `${datePart} ${timePart}`;
-    } catch (err) {
-      return dateStr;
+  useEffect(() => {
+    let scanner: Html5QrcodeScanner | null = null;
+    if (showScanner) {
+      scanner = new Html5QrcodeScanner('reader-student', { fps: 10, qrbox: { width: 250, height: 250 }, supportedScanTypes: [0], videoConstraints: { facingMode: "environment" } }, false);
+      scanner.render(async (decodedText) => {
+        if (scanner) scanner.clear().catch(err => console.error(err));
+        setShowScanner(false);
+        let claimId = decodedText;
+        if (decodedText.includes('?id=')) claimId = decodedText.split('?id=')[1];
+
+        setScanMessage({ text: '驗證中...', type: 'info' });
+        try {
+          const res = await fetch('/api/member/claim', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ claim_id: claimId }) });
+          const data = await res.json();
+          if (res.ok) { setScanMessage({ text: `成功領取 ${data.points_added} 點！`, type: 'success' }); router.refresh(); } 
+          else setScanMessage({ text: data.error === 'ALREADY_CLAIMED' ? '已領取過' : '領取失敗', type: 'error' });
+        } catch (err) {}
+      }, () => {});
     }
-  };
+    return () => { if (scanner) scanner.clear().catch(console.error); };
+  }, [showScanner]);
+
+  const formatDate = (dateStr: string) => dateStr.substring(0, 16).replace('T', ' ');
 
   return (
     <div style={{ backgroundColor: '#FAF3E8', minHeight: '100vh', padding: '24px 16px', boxSizing: 'border-box' }}>
-      <div className="content-wrapper">
-        
-        {/* 標題欄 */}
+      <div className="content-wrapper" style={{ width: '100%', maxWidth: '500px', margin: '0 auto' }}>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #CBD5E1', paddingBottom: '16px' }}>
-          <div style={{ flexGrow: 1 }}>
-            <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E293B' }}>
-              Hello! {profile.name}
-            </span>
-          </div>
-          
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <button 
-              onClick={() => { setShowHistory(!showHistory); setShowScanner(false); setScanMessage({ text: '', type: '' }); }} 
-              className="custom-btn-logout"
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                padding: '8px',
-                backgroundColor: showHistory ? '#0097B2' : '#FFFFFF',
-                color: showHistory ? '#FFFFFF' : '#0097B2',
-                borderColor: '#0097B2'
-              }}
-              title="歷史紀錄"
-            >
-              <Telescope size={16} />
-            </button>
-            <button 
-              onClick={() => { setShowScanner(!showScanner); setShowHistory(false); setScanMessage({ text: '', type: '' }); }} 
-              className="custom-btn-logout"
-              style={{ 
-                backgroundColor: showScanner ? '#0097B2' : '#FFFFFF', 
-                color: showScanner ? '#FFFFFF' : '#0097B2', 
-                borderColor: '#0097B2' 
-              }}
-            >
-              {showScanner ? '關閉' : '掃描'}
-            </button>
-            <button onClick={handleLogout} className="custom-btn-logout">
-              登出
-            </button>
+          <span style={{ fontSize: '22px', fontWeight: 'bold' }}>Hello! {profile.name}</span>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => { setShowHistory(!showHistory); setShowScanner(false); }} className="custom-btn-circle"><Telescope size={16} /></button>
+            <button onClick={() => { setShowScanner(!showScanner); setShowHistory(false); }} className="custom-btn-logout">{showScanner ? '關閉' : '掃描'}</button>
+            <button onClick={handleLogout} className="custom-btn-logout">登出</button>
           </div>
         </header>
 
-        {/* 學生端公告欄 */}
-        {announcement && announcement.trim() !== '' && (
-          <div className="custom-marquee-container">
-            <div className="custom-marquee-icon">
-              <Megaphone size={16} />
-            </div>
-            <div className="custom-marquee-text-wrapper">
-              <span className="custom-marquee-text">{announcement}</span>
-            </div>
-          </div>
+        {announcement && !showHistory && (
+          <div className="custom-marquee-container"><div className="custom-marquee-icon"><Megaphone size={16} /></div><span className="custom-marquee-text">{announcement}</span></div>
         )}
 
-        {/* 提示訊息 */}
         {(scanMessage.text || successMsg) && (
-          <div style={{ padding: '16px', borderRadius: '16px', border: '1px solid', marginBottom: '24px', textAlign: 'center', fontSize: '14px', backgroundColor: '#ECFDF5', borderColor: '#10B981', color: '#047857', fontWeight: 'bold' }}>
-            {scanMessage.text || successMsg}
-          </div>
+          <div style={{ padding: '16px', borderRadius: '16px', border: '1px solid #10B981', marginBottom: '24px', textAlign: 'center', backgroundColor: '#ECFDF5', color: '#047857', fontWeight: 'bold' }}>{scanMessage.text || successMsg}</div>
         )}
 
-        {showScanner && (
-          <div className="custom-card" style={{ maxWidth: '100%', textAlign: 'center', marginBottom: '32px' }}>
-            <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '16px' }}>請允許相機權限，對準大螢幕的加點 QR Code</p>
-            <div id="reader-student" style={{ borderRadius: '16px', overflow: 'hidden', border: '2px solid #CBD5E1' }}></div>
-          </div>
-        )}
+        {showScanner && <div className="custom-card" style={{ marginBottom: '32px' }}><div id="reader-student"></div></div>}
 
-        {showHistory && (
-          <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '24px', padding: '24px' }}>
-            <h3 className="custom-h2" style={{ fontSize: '18px', textAlign: 'center', marginBottom: '16px' }}>論點異動歷史紀錄</h3>
-            {transactions.length === 0 ? (
-              <p style={{ textAlign: 'center', color: '#64748B', fontSize: '14px', margin: 0 }}>目前尚無任何論點異動紀錄</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '300px', overflowY: 'auto', marginBottom: '24px' }}>
-                {transactions.map((t, index) => (
-                  <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 4px', borderBottom: index === transactions.length - 1 ? 'none' : '1px solid #E2E8F0', fontSize: '14px' }}>
-                    <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontWeight: 'bold', color: '#1E293B' }}>{t.reason}</div>
-                      <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>{formatDate(t.created_at)}</div>
-                    </div>
-                    <div style={{ fontWeight: 'bold', fontSize: '16px', color: t.amount > 0 ? '#10B981' : '#EF4444' }}>
-                      {t.amount > 0 ? `+${t.amount}` : t.amount}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            <button onClick={() => setShowHistory(false)} className="custom-btn-primary" style={{ width: '100%' }}>
-              返回首頁
-            </button>
-          </div>
-        )}
-
-        {/* 整合一體化大卡片 */}
-        <div className="custom-card" style={{ maxWidth: '100%', marginBottom: '32px', marginTop: '0px', textAlign: 'center', padding: '24px' }}>
-          <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 4px 0' }}>我的「論點」餘額</p>
-          <p style={{ fontSize: '36px', fontWeight: '900', color: '#0097B2', margin: '0 0 16px 0' }}>
-            {profile.points} <span style={{ fontSize: '15px', fontWeight: 'normal', color: '#475569' }}>點</span>
-          </p>
-
-          <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '20px', marginTop: '8px' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: 'bold', color: '#1E293B', margin: '0 0 12px 0' }}>出示此安全碼進行兌換</h3>
-            <div style={{ display: 'inline-block', backgroundColor: '#FFFFFF', padding: '12px', border: '1px solid #CBD5E1', borderRadius: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-              <QRCodeSVG value={profile.qr_token} size={150} />
-            </div>
-            <p style={{ fontSize: '11px', color: '#64748B', marginTop: '14px', fontWeight: '300', marginBottom: '0px' }}>點數不可轉贈他人</p>
-          </div>
-        </div>
-
-        {/* 獎品列表：對應您的手繪設計圖 */}
-        <div>
-          <h2 className="custom-h2" style={{ paddingLeft: '8px', fontSize: '18px', marginBottom: '12px' }}>獎品列表</h2>
-          <div className="custom-card" style={{ maxWidth: '100%', padding: '24px', marginBottom: '32px' }}>
-            {rewards.map((reward, index) => {
-              const isPending = pendingRewardIds.includes(reward.id);
-              const canAfford = profile.points >= reward.points_required;
-
-              return (
-                <div key={reward.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: index === rewards.length - 1 ? 'none' : '1px solid #E2E8F0' }}>
-                  <div style={{ flexGrow: 1, paddingRight: '12px', textAlign: 'left' }}>
-                    {/* 標題與內文放大 */}
-                    <h4 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, color: '#1E293B' }}>{reward.title}</h4>
-                    <p style={{ fontSize: '15px', color: '#475569', margin: '6px 0 0 0', lineHeight: '1.5' }}>{reward.description}</p>
-                  </div>
-                  
-                  {/* 💡 雙層垂直對齊排版：上方黑色大字點數、下方固定尺寸膠囊按鈕 */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', minWidth: '80px' }}>
-                    <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#000000', whiteSpace: 'nowrap' }}>
-                      {reward.points_required} 點
-                    </span>
-                    
-                    {isPending ? (
-                      /* 已申請按鈕 (寬高鎖死 80x36px，字體變為 13px) */
-                      <button disabled className="btn-redeem btn-redeem-pending">
-                        已申請
-                      </button>
-                    ) : canAfford ? (
-                      /* 兌換按鈕 (寬高鎖死 80x36px，字體 16px) */
-                      <button 
-                        onClick={() => handleRedeemRequestSubmit(reward.id)} 
-                        disabled={loadingId === reward.id}
-                        className="btn-redeem btn-redeem-active"
-                      >
-                        {loadingId === reward.id ? '...' : '兌換'}
-                      </button>
-                    ) : (
-                      /* 點數不足按鈕 (寬高鎖死 80x36px) */
-                      <button disabled className="btn-redeem btn-redeem-disabled">
-                        點數不足
-                      </button>
-                    )}
-                  </div>
+        {showHistory ? (
+          <div className="custom-card" style={{ marginBottom: '24px' }}>
+            <h3 className="custom-h2" style={{ textAlign: 'center' }}>論點異動查詢</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '300px', overflowY: 'auto', marginBottom: '24px' }}>
+              {transactions.map((t) => (
+                <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 4px', borderBottom: '1px solid #E2E8F0' }}>
+                  <div><div style={{ fontWeight: 'bold' }}>{t.reason}</div><div style={{ fontSize: '11px', color: '#64748B' }}>{formatDate(t.created_at)}</div></div>
+                  <div style={{ fontWeight: 'bold', color: t.amount > 0 ? '#10B981' : '#EF4444' }}>{t.amount > 0 ? `+${t.amount}` : t.amount}</div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+            <button onClick={() => setShowHistory(false)} className="custom-btn-primary" style={{ width: '100%' }}>返回首頁</button>
           </div>
-        </div>
+        ) : (
+          <div>
+            <div className="custom-card" style={{ marginBottom: '32px', textAlign: 'center' }}>
+              <p style={{ color: '#64748B' }}>我的「論點」餘額</p>
+              <p style={{ fontSize: '36px', fontWeight: '900', color: '#0097B2' }}>{profile.points} <span style={{ fontSize: '15px' }}>點</span></p>
+              <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '20px', marginTop: '8px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 'bold' }}>出示此安全碼進行兌換</h3>
+                <div style={{ display: 'inline-block', padding: '12px', border: '1px solid #CBD5E1', borderRadius: '16px' }}><QRCodeSVG value={profile.qr_token} size={150} /></div>
+              </div>
+            </div>
+
+            <h2 className="custom-h2">獎品列表</h2>
+            <div className="custom-card" style={{ padding: '24px', marginBottom: '32px' }}>
+              {rewards.map((reward, index) => {
+                const isPending = pendingRewardIds.includes(reward.id);
+                const canAfford = profile.points >= reward.points_required;
+                return (
+                  <div key={reward.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: index === rewards.length - 1 ? 'none' : '1px solid #E2E8F0' }}>
+                    <div style={{ flexGrow: 1, paddingRight: '12px' }}>
+                      <h4 style={{ fontSize: '18px', fontWeight: 'bold' }}>{reward.title}</h4>
+                      <p style={{ fontSize: '15px', color: '#475569', margin: '6px 0 0 0' }}>{reward.description}</p>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', minWidth: '80px' }}>
+                      <span style={{ fontSize: '18px', fontWeight: 'bold' }}>{reward.points_required} 點</span>
+                      {isPending ? (
+                        <button disabled className="btn-redeem btn-redeem-pending">已申請</button>
+                      ) : canAfford ? (
+                        <button onClick={() => handleRedeemRequestSubmit(reward.id)} disabled={loadingId === reward.id} className="btn-redeem btn-redeem-active">兌換</button>
+                      ) : (
+                        <button disabled className="btn-redeem btn-redeem-disabled">點數不足</button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
